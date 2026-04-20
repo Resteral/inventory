@@ -258,10 +258,29 @@ function createGrid() {
       cell.addEventListener('mouseenter', (e) => {
         if (e.buttons === 1) handleCellInteraction(e, r, c); // Drag support for drawing
       });
+      
+      // Native Mobile Touch Binding
+      cell.addEventListener('touchstart', (e) => {
+        handleCellInteraction(e, r, c);
+      }, {passive: true});
 
       storeGrid.appendChild(cell);
     }
   }
+
+  // Handle continuous finger sliding across the grid on phones
+  storeGrid.addEventListener('touchmove', (e) => {
+    if (state.mode !== 'edit') return;
+    e.preventDefault(); // Stop Android Chrome pull-to-refresh / native scrolling
+    const touch = e.touches[0];
+    const target = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (target) {
+       const cell = target.closest('.grid-cell');
+       if (cell) {
+         handleCellInteraction(e, cell.dataset.row, cell.dataset.col);
+       }
+    }
+  }, { passive: false });
 }
 
 // Event Listeners setup
@@ -443,6 +462,7 @@ function renderFixtures() {
     
     // Fixture click listener
     fDiv.addEventListener('mousedown', (e) => handleFixtureClick(e, fixture.id));
+    fDiv.addEventListener('touchstart', (e) => handleFixtureClick(e, fixture.id), {passive: true});
 
     cell.appendChild(fDiv);
   });
@@ -1312,6 +1332,52 @@ function renderRevenueChart() {
       }
     }
   });
+}
+
+// --- Barcode Camera Scanning Logic ---
+function startCameraScan() {
+  if (!window.Html5Qrcode) { alert("Camera library not loaded!"); return; }
+  readerContainer.classList.remove('hidden');
+  html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } }, (decodedText) => {
+    prodBarcodeInput.value = decodedText;
+    stopCameraScan();
+  }).catch(err => console.warn("Scanner error:", err));
+}
+
+function stopCameraScan() {
+  if (html5QrCode) {
+    html5QrCode.stop().then(() => {
+      html5QrCode.clear();
+      html5QrCode = null;
+      readerContainer.classList.add('hidden');
+    }).catch(err => console.warn(err));
+  } else {
+    readerContainer.classList.add('hidden');
+  }
+}
+
+function startPosCameraScan() {
+  if (!window.Html5Qrcode) { alert("Camera library not loaded!"); return; }
+  posReaderCont.classList.remove('hidden');
+  posQrCode = new Html5Qrcode("pos-reader");
+  posQrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 150 } }, (decodedText) => {
+    posBarcode.value = decodedText;
+    handlePosBarcodeScanned(decodedText);
+    stopPosCameraScan();
+  }).catch(err => console.warn("POS Scanner error:", err));
+}
+
+function stopPosCameraScan() {
+  if (posQrCode) {
+    posQrCode.stop().then(() => {
+      posQrCode.clear();
+      posQrCode = null;
+      posReaderCont.classList.add('hidden');
+    }).catch(err => console.warn(err));
+  } else {
+    posReaderCont.classList.add('hidden');
+  }
 }
 
 // Boot
