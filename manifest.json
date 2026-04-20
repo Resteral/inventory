@@ -1,0 +1,21 @@
+{
+  "name": "The City Inventory Manager",
+  "short_name": "The City",
+  "description": "Convenience store layout mapper and inventory manager.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#06090e",
+  "theme_color": "#38bdf8",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/store/materialicons/48dp/2x/baseline_store_white_48dp.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/store/materialicons/48dp/2x/baseline_store_white_48dp.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

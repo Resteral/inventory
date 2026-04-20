@@ -629,3 +629,45 @@ input:focus {
   background: rgba(255,51,102,0.1);
 }
 
+/* Mobile Responsiveness for Phones */
+@media screen and (max-width: 800px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+    height: auto;
+    max-height: 45vh;
+    padding: 1.5rem;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 2px solid var(--border-color);
+  }
+  .canvas-wrapper {
+    padding: 1rem;
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+  .inventory-panel, .pos-panel {
+    width: 100%;
+    right: 0;
+    max-height: 55vh;
+    top: auto;
+    bottom: 0;
+    border-left: none;
+    border-top: 2px solid var(--border-color);
+    transform: translateY(100%);
+  }
+  .inventory-panel:not(.hidden), .pos-panel:not(.hidden) {
+    transform: translateY(0);
+  }
+  .modal-content {
+    width: 95% !important;
+    padding: 1.5rem;
+    height: 90vh !important;
+  }
+  .master-inv-controls {
+    flex-direction: column;
+  }
+}

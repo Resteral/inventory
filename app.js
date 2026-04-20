@@ -1,10 +1,10 @@
 // --- Supabase Config Setup ---
 // NOTE: You must replace these placeholders with your actual Supabase Project URL and Anon Key
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
-let supabase = null;
+const SUPABASE_URL = 'https://oxumxstpfttqrxmfinfo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im94dW14c3RwZnR0cXJ4bWZpbmZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MTE3NjYsImV4cCI6MjA5MjI4Nzc2Nn0.sF7DXiPp0e10DHYnV7V_egNNXgH1p8XGl9FRXqD3D1E';
+let dbClient = null;
 if (window.supabase && SUPABASE_URL.startsWith('http')) {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  dbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
 const state = {
@@ -161,14 +161,14 @@ function loadState() {
 
 // ----- Supabase Auth -----
 async function handleAuth() {
-  if (!supabase) {
+  if (!dbClient) {
     authError.textContent = "Supabase Database not configured. Please enter your SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js.";
     authError.style.display = 'block';
     return;
   }
 
   // Check active session on load
-  const { data: { session }, error } = await supabase.auth.getSession();
+  const { data: { session }, error } = await dbClient.auth.getSession();
   if (session) {
     authModal.classList.add('hidden');
     authLogoutBtn.style.display = 'block';
@@ -178,7 +178,7 @@ async function handleAuth() {
   }
 
   // Listen for changes
-  supabase.auth.onAuthStateChange((event, session) => {
+  dbClient.auth.onAuthStateChange((event, session) => {
     if (session) {
       authModal.classList.add('hidden');
       authLogoutBtn.style.display = 'block';
@@ -195,37 +195,39 @@ function showAuthError(msg) {
 }
 
 btnLogin.addEventListener('click', async () => {
-  if (!supabase) return showAuthError("Supabase not configured in app.js.");
+  if (!dbClient) return showAuthError("Supabase not configured in app.js.");
   const email = authEmail.value;
   const password = authPassword.value;
   if (!email || !password) return showAuthError("Please enter email and password.");
   
   btnLogin.textContent = "Logging in...";
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { error } = await dbClient.auth.signInWithPassword({ email, password });
   btnLogin.textContent = "Log In";
   
   if (error) showAuthError(error.message);
 });
 
 btnSignup.addEventListener('click', async () => {
-  if (!supabase) return showAuthError("Supabase not configured in app.js.");
+  if (!dbClient) return showAuthError("Supabase not configured in app.js.");
   const email = authEmail.value;
   const password = authPassword.value;
   if (!email || !password) return showAuthError("Please enter email and password.");
   
   btnSignup.textContent = "Signing up...";
-  const { error } = await supabase.auth.signUp({ email, password });
+  const { error } = await dbClient.auth.signUp({ email, password });
   btnSignup.textContent = "Sign Up";
   
   if (error) {
     showAuthError(error.message);
   } else {
-    alert("Check your email for the confirmation link, or you have been automatically signed in.");
+    authError.textContent = "Check your email for the confirmation link. You will not be able to log in until confirmed.";
+    authError.style.display = 'block';
+    authError.style.color = 'var(--accent-success)';
   }
 });
 
 authLogoutBtn.addEventListener('click', async () => {
-  if (supabase) await supabase.auth.signOut();
+  if (dbClient) await dbClient.auth.signOut();
 });
 
 // Initialize App
@@ -1314,3 +1316,14 @@ function renderRevenueChart() {
 
 // Boot
 init();
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').then(registration => {
+      console.log('SW registered successfully:', registration.scope);
+    }).catch(error => {
+      console.log('SW registration failed:', error);
+    });
+  });
+}
