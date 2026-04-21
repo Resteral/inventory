@@ -53,6 +53,14 @@
             <span class="material-symbols-outlined">door_front</span>
             <span>Entrance</span>
           </div>
+          <div class="tool-btn" data-type="table">
+            <span class="material-symbols-outlined">table_restaurant</span>
+            <span>Dining Table</span>
+          </div>
+          <div class="tool-btn" data-type="kitchen">
+            <span class="material-symbols-outlined">soup_kitchen</span>
+            <span>Prep Area</span>
+          </div>
           <div class="tool-btn" data-type="eraser" id="eraser-btn">
             <span class="material-symbols-outlined">ink_eraser</span>
             <span>Remove</span>
@@ -320,6 +328,71 @@
            <span>Total Store Revenue: <strong id="analytics-total-rev" class="stat-val" style="color: var(--accent-success); font-size: 1.2rem;">$0.00</strong></span>
         </div>
       </div>
+    </div>
+
+    <!-- Table Service Panel -->
+    <aside id="table-panel" class="inventory-panel glass-panel hidden" style="border-left: 1px solid var(--accent-warning); box-shadow: -5px 0 30px rgba(245, 158, 11, 0.1);">
+      <button id="close-table" class="icon-btn"><span class="material-symbols-outlined">close</span></button>
+      
+      <div class="inv-header">
+        <span class="material-symbols-outlined inv-icon" style="color:var(--accent-warning);">restaurant</span>
+        <div>
+          <h2 id="table-service-name">Table</h2>
+          <p class="subtitle" id="table-service-status" style="color:var(--accent-warning);">Available</p>
+        </div>
+      </div>
+
+      <div class="add-product-form" style="border-color: rgba(245, 158, 11, 0.2);">
+        <h3>Table Settings</h3>
+        <div class="form-row">
+          <input type="number" id="table-seats" placeholder="Customer Count" min="1">
+          <button id="btn-seat-table" class="btn btn-primary" style="background:var(--accent-warning); color:#000;">Seat</button>
+        </div>
+        <button id="btn-clear-table" class="btn btn-sm btn-danger" style="width: 100%; margin-top: 5px;">Clear / Clean Table</button>
+      </div>
+
+      <div class="product-list-container" id="table-orders-container" style="flex:1; display:flex; flex-direction:column; margin-top:1rem; opacity: 0.5; pointer-events: none;">
+        <h3>Open Order</h3>
+        <select id="table-menu-add" style="margin-bottom:1rem; background:rgba(0,0,0,0.4); color:#fff; border:1px solid var(--border-color); padding:0.8rem; border-radius:6px; width:100%;">
+          <option value="">- Add Menu Item -</option>
+        </select>
+        
+        <ul id="table-order-list" class="product-list" style="flex:1; overflow-y:auto;">
+          <!-- Order items -->
+        </ul>
+        
+        <div style="margin-top:auto; padding-top:1rem; border-top: 1px solid var(--border-color);">
+           <button id="btn-send-kitchen" class="btn btn-primary" style="width:100%; margin-bottom: 0.5rem; background: #6366f1;">Send to Kitchen</button>
+           <button id="btn-checkout-table" class="btn btn-primary" style="width:100%; background:var(--accent-success); color:#000;">Checkout to POS</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Receipt Modal -->
+    <div id="receipt-modal" class="modal-overlay hidden" style="z-index: 9000; align-items:center; justify-content:center;">
+       <div class="modal-content glass-panel" style="width: 350px; max-width:90%; height: auto; max-height:90vh; background:#fff; color:#000; border-radius: 4px; padding: 2rem;">
+          <div style="text-align:center; margin-bottom: 1rem; border-bottom: 2px dashed #ccc; padding-bottom:1rem;">
+             <h2 style="margin:0; font-family: monospace; text-transform:uppercase;">The City</h2>
+             <p style="margin:5px 0 0; font-family:monospace; font-size: 0.9rem;">Store Receipt</p>
+             <p style="margin:5px 0 0; font-family:monospace; font-size: 0.8rem;" id="receipt-date"></p>
+             <p style="margin:5px 0 0; font-family:monospace; font-size: 0.8rem;" id="receipt-order-id"></p>
+          </div>
+          
+          <div id="receipt-items" style="font-family:monospace; font-size:0.9rem; margin-bottom:1rem; min-height: 100px;">
+             <!-- items -->
+          </div>
+          
+          <div style="border-top: 2px dashed #ccc; padding-top:1rem; font-family:monospace; font-size:1rem;">
+             <div style="display:flex; justify-content:space-between;"><span>Subtotal:</span><span id="receipt-subtotal"></span></div>
+             <div style="display:flex; justify-content:space-between;"><span>Tax:</span><span id="receipt-tax"></span></div>
+             <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:1.2rem; margin-top:0.5rem;"><span>TOTAL:</span><span id="receipt-total"></span></div>
+          </div>
+          
+          <div style="text-align:center; margin-top:2rem;">
+             <button id="btn-close-receipt" class="btn btn-primary" style="width:100%; font-family: 'Outfit';">Done</button>
+             <button id="btn-print-receipt" class="btn btn-sm" style="width:100%; font-family: 'Outfit'; margin-top:0.5rem; background:#e2e8f0; color:#000;">Print (PDF)</button>
+          </div>
+       </div>
     </div>
 
     <!-- Supabase Auth Modal -->

@@ -255,6 +255,27 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
   mask-image: radial-gradient(circle, black 50%, transparent 100%);
 }
 
+.fixture.type-eraser {
+  display: none;
+}
+.fixture.type-table {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid #f59e0b;
+  border-radius: 50%;
+}
+.fixture.type-kitchen {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px dashed #ef4444;
+}
+.fixture.table-seated {
+  background: rgba(245, 158, 11, 0.6) !important;
+  color: #fff !important;
+  border: 2px solid #fff !important;
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.6);
+}
+
 .store-grid {
   display: grid;
   grid-template-columns: repeat(25, var(--grid-size));
@@ -672,5 +693,32 @@ input:focus {
   }
   .master-inv-controls {
     flex-direction: column;
+  }
+}
+
+/* Print Receipt Styles */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #receipt-modal, #receipt-modal * {
+    visibility: visible;
+  }
+  #receipt-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    background: #fff;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  .modal-content {
+    box-shadow: none !important;
+    border: none !important;
+    max-width: 100% !important;
+  }
+  #btn-close-receipt, #btn-print-receipt {
+    display: none !important;
   }
 }

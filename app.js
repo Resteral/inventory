@@ -108,19 +108,47 @@ const closeAnalyticsBtn = document.getElementById('close-analytics');
 const analyticsTotalRev = document.getElementById('analytics-total-rev');
 let revenueChartInstance = null;
 
+// Table & Receipt Elements
+const tablePanel = document.getElementById('table-panel');
+const closeTableBtn = document.getElementById('close-table');
+const tableServiceName = document.getElementById('table-service-name');
+const tableServiceStatus = document.getElementById('table-service-status');
+const tableSeatsInput = document.getElementById('table-seats');
+const btnSeatTable = document.getElementById('btn-seat-table');
+const btnClearTable = document.getElementById('btn-clear-table');
+const tableOrdersContainer = document.getElementById('table-orders-container');
+const tableMenuAdd = document.getElementById('table-menu-add');
+const tableOrderList = document.getElementById('table-order-list');
+const btnSendKitchen = document.getElementById('btn-send-kitchen');
+const btnCheckoutTable = document.getElementById('btn-checkout-table');
+
+const receiptModal = document.getElementById('receipt-modal');
+const receiptDate = document.getElementById('receipt-date');
+const receiptOrderId = document.getElementById('receipt-order-id');
+const receiptItems = document.getElementById('receipt-items');
+const receiptSubtotal = document.getElementById('receipt-subtotal');
+const receiptTax = document.getElementById('receipt-tax');
+const receiptTotal = document.getElementById('receipt-total');
+const btnCloseReceipt = document.getElementById('btn-close-receipt');
+const btnPrintReceipt = document.getElementById('btn-print-receipt');
+
 // Icons Mapping
 const icons = {
   shelf: 'shelves',
   cooler: 'kitchen',
   register: 'point_of_sale',
-  door: 'door_front'
+  door: 'door_front',
+  table: 'table_restaurant',
+  kitchen: 'soup_kitchen'
 };
 
 const labels = {
   shelf: 'Aisle Shelf',
   cooler: 'Cooler',
   register: 'Register',
-  door: 'Entrance Door'
+  door: 'Entrance Door',
+  table: 'Dining Table',
+  kitchen: 'Prep Kitchen'
 };
 
 // Persistence
@@ -366,6 +394,17 @@ function setupEventListeners() {
       posQuickAdd.value = ''; // reset dropdown
     }
   });
+
+  // Table Service Listeners
+  closeTableBtn.addEventListener('click', closeTablePanel);
+  btnSeatTable.addEventListener('click', handleSeatTable);
+  btnClearTable.addEventListener('click', handleClearTable);
+  tableMenuAdd.addEventListener('change', handleTableMenuAdd);
+  btnSendKitchen.addEventListener('click', handleSendKitchen);
+  btnCheckoutTable.addEventListener('click', handleTableCheckout);
+  
+  btnCloseReceipt.addEventListener('click', () => receiptModal.classList.add('hidden'));
+  btnPrintReceipt.addEventListener('click', () => window.print());
 }
 
 // Switch between Edit Layout and Manage Inventory modes
@@ -435,6 +474,10 @@ function handleFixtureClick(e, id) {
     const f = state.fixtures[id];
     if (f && f.type === 'register') {
       openPos(id);
+    } else if (f && f.type === 'table') {
+      openTablePanel(id);
+    } else if (f && f.type === 'kitchen') {
+      alert("Kitchen Area: Use this space to visually manage layout. Orders are routed from Tables directly.");
     } else {
       openInventory(id);
     }
@@ -457,6 +500,9 @@ function renderFixtures() {
     if (state.selectedFixtureId === fixture.id && state.mode === 'inventory') {
       fDiv.classList.add('selected');
     }
+    if (fixture.type === 'table' && fixture.status === 'seated') {
+      fDiv.classList.add('table-seated');
+    }
 
     fDiv.innerHTML = `<span class="material-symbols-outlined">${icons[fixture.type]}</span>`;
     
@@ -474,6 +520,7 @@ function openInventory(fixtureId) {
   if (!fixture) return;
 
   closePos(); // Ensure pos is closed
+  if (typeof closeTablePanel === 'function') closeTablePanel(); // Ensure table is closed
 
   if (fixture.type === 'door') {
     alert("Cannot assign inventory to an entrance.");
@@ -511,6 +558,7 @@ function closeInventory() {
 
 function openPos(fixtureId) {
   closeInventory(); // Ensure standard inventory panel is closed
+  if (typeof closeTablePanel === 'function') closeTablePanel(); // Ensure table is closed
   const fixture = state.fixtures[fixtureId];
   if (!fixture) return;
 
@@ -681,11 +729,16 @@ function handleCheckout() {
     state.salesData[item.name].revenue += revVal;
     state.salesData[item.name].qtySold += item.qtyToSell;
   });
-  
   saveState(); // Save stock deductions
 
-  alert(`Sale completed successfully! Total collected: ${posTotal.textContent}`);
+  // Generate Receipt
+  let subtotal = 0; 
+  posState.cart.forEach(i => subtotal += (i.price * i.qtyToSell));
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
   
+  generateReceiptModal(posState.cart, subtotal, tax, total, "POS Sale");
+
   // Clear cart
   posState.cart = [];
   renderPosCart();
@@ -1378,6 +1431,222 @@ function stopPosCameraScan() {
   } else {
     posReaderCont.classList.add('hidden');
   }
+}
+
+// ----- Table Service System -----
+function openTablePanel(fixtureId) {
+  closeInventory();
+  closePos();
+  
+  const fixture = state.fixtures[fixtureId];
+  if(!fixture) return;
+  
+  tablePanel.classList.remove('hidden');
+  renderTablePanel(fixture);
+}
+
+function closeTablePanel() {
+  tablePanel.classList.add('hidden');
+}
+
+function renderTablePanel(fixture) {
+  tableServiceName.textContent = `Table (Row ${fixture.row+1}, Col ${fixture.col+1})`;
+  if (fixture.status === 'seated') {
+     tableServiceStatus.textContent = `Seated (${fixture.seats} Customers)`;
+     tableOrdersContainer.style.opacity = '1';
+     tableOrdersContainer.style.pointerEvents = 'auto';
+     btnSeatTable.disabled = true;
+  } else {
+     tableServiceStatus.textContent = `Available`;
+     tableOrdersContainer.style.opacity = '0.5';
+     tableOrdersContainer.style.pointerEvents = 'none';
+     btnSeatTable.disabled = false;
+  }
+  
+  // Build menu
+  tableMenuAdd.innerHTML = '<option value="">- Add Menu Item (from Inventory) -</option>';
+  const products = getAllStoreProducts();
+  products.forEach(p => {
+    if (p.qty > 0) {
+       const opt = document.createElement('option');
+       opt.value = `${p.sourceFixtureId}|${p.id}`;
+       opt.textContent = `${p.name} ($${p.price.toFixed(2)}) - ${p.qty} in stock`;
+       tableMenuAdd.appendChild(opt);
+    }
+  });
+  
+  tableOrderList.innerHTML = '';
+  if (!fixture.order || fixture.order.length === 0) {
+     tableOrderList.innerHTML = `<li class="instruction-text" style="text-align:center; padding: 1rem 0;">No items ordered.</li>`;
+  } else {
+     fixture.order.forEach((item, idx) => {
+        const li = document.createElement('li');
+        li.className = 'product-item';
+        li.style.background = item.sent ? 'rgba(0,0,0,0.5)' : 'rgba(245, 158, 11, 0.1)';
+        li.innerHTML = `
+          <div class="prod-info">
+            <h4>${item.name} ${item.sent ? '<span style="color:#6366f1; font-size:0.7rem; vertical-align:top;">(Sent to Kitchen)</span>' : ''}</h4>
+            <div class="prod-details">Qty: ${item.qtyToSell} • <span style="color:var(--accent-warning);">$${item.price.toFixed(2)}</span></div>
+          </div>
+          <button class="icon-btn del-btn" style="position:static" onclick="removeTableOrderItem('${fixture.id}', ${idx})">
+             <span class="material-symbols-outlined">delete</span>
+          </button>
+        `;
+        tableOrderList.appendChild(li);
+     });
+  }
+}
+
+function handleSeatTable() {
+  const f = state.fixtures[state.selectedFixtureId];
+  if(f && f.type === 'table') {
+    f.status = 'seated';
+    f.seats = parseInt(tableSeatsInput.value) || 1;
+    f.order = f.order || [];
+    renderTablePanel(f);
+    renderFixtures();
+    saveState();
+  }
+}
+
+function handleClearTable() {
+  const f = state.fixtures[state.selectedFixtureId];
+  if(f && f.type === 'table') {
+    if (f.order && f.order.length > 0) {
+      if (!confirm("This table still has open orders. Clean anyway?")) return;
+    }
+    f.status = 'available';
+    f.seats = 0;
+    f.order = [];
+    tableSeatsInput.value = '';
+    renderTablePanel(f);
+    renderFixtures();
+    saveState();
+  }
+}
+
+function handleTableMenuAdd(e) {
+  const valString = e.target.value;
+  if(!valString) return;
+  const [fId, pId] = valString.split('|');
+  const sourceF = state.fixtures[fId];
+  const prod = sourceF?.products.find(p => p.id === pId);
+  const f = state.fixtures[state.selectedFixtureId];
+  
+  if (prod && f && f.type === 'table') {
+     f.order = f.order || [];
+     const existing = f.order.find(o => o.id === prod.id && !o.sent);
+     
+     // Stock Check
+     const totalOrdered = f.order.reduce((sum, o) => o.id === prod.id ? sum + o.qtyToSell : sum, 0);
+     if (totalOrdered + 1 > prod.qty) {
+        alert("Not enough stock for this menu item!");
+        e.target.value = '';
+        return;
+     }
+
+     if (existing) existing.qtyToSell += 1;
+     else {
+       f.order.push({
+         id: prod.id,
+         name: prod.name,
+         price: prod.price,
+         sourceFixtureId: fId,
+         qtyToSell: 1,
+         sent: false
+       });
+     }
+     renderTablePanel(f);
+     saveState();
+  }
+  e.target.value = '';
+}
+
+window.removeTableOrderItem = function(fixtureId, orderIdx) {
+  const f = state.fixtures[fixtureId];
+  if(f && f.order) {
+    if (f.order[orderIdx].sent) {
+       if(!confirm("Item is already cooking! Are you sure you want to remove it?")) return;
+    }
+    f.order.splice(orderIdx, 1);
+    renderTablePanel(f);
+    saveState();
+  }
+}
+
+function handleSendKitchen() {
+  const f = state.fixtures[state.selectedFixtureId];
+  if(f && f.order) {
+    if(f.order.length === 0) return alert("Nothing to send.");
+    f.order.forEach(o => o.sent = true);
+    renderTablePanel(f);
+    saveState();
+  }
+}
+
+function handleTableCheckout() {
+  const f = state.fixtures[state.selectedFixtureId];
+  if(!f || !f.order || f.order.length === 0) return alert("No items on table to checkout.");
+  
+  let subtotal = 0;
+  f.order.forEach(item => {
+    subtotal += (item.price * item.qtyToSell);
+    // Deduct stock
+    const sourceFixture = state.fixtures[item.sourceFixtureId];
+    if(sourceFixture) {
+       const realProd = sourceFixture.products.find(p => p.id === item.id);
+       if(realProd) realProd.qty -= item.qtyToSell;
+    }
+    
+    // Log target Sales Data
+    const revVal = item.price * item.qtyToSell;
+    if (!state.salesData[item.name]) state.salesData[item.name] = { revenue: 0, qtySold: 0 };
+    state.salesData[item.name].revenue += revVal;
+    state.salesData[item.name].qtySold += item.qtyToSell;
+  });
+  
+  const tax = subtotal * 0.08;
+  const total = subtotal + tax;
+  
+  generateReceiptModal(f.order, subtotal, tax, total, `Table ${f.row+1}-${f.col+1}`);
+  
+  f.status = 'available';
+  f.seats = 0;
+  f.order = [];
+  tableSeatsInput.value = '';
+  
+  renderTablePanel(f);
+  renderFixtures();
+  saveState();
+  updateStats();
+}
+
+// ----- Receipt Generator -----
+function generateReceiptModal(items, subtotal, tax, total, transactionType) {
+  receiptDate.textContent = `Date: ${new Date().toLocaleString()}`;
+  receiptOrderId.textContent = `Txn: ${transactionType} | ID: ${Math.floor(Math.random()*90000)+10000}`;
+  
+  receiptItems.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.style.display = 'flex';
+    div.style.justifyContent = 'space-between';
+    div.style.marginBottom = '0.3rem';
+    
+    // Formatting name length for receipt ticker
+    const maxName = item.name.length > 20 ? item.name.substring(0,18)+'..' : item.name;
+    const namePart = `${item.qtyToSell}x ${maxName}`;
+    const pricePart = `$${(item.price * item.qtyToSell).toFixed(2)}`;
+    
+    div.innerHTML = `<span>${namePart}</span><span>${pricePart}</span>`;
+    receiptItems.appendChild(div);
+  });
+  
+  receiptSubtotal.textContent = `$${subtotal.toFixed(2)}`;
+  receiptTax.textContent = `$${tax.toFixed(2)}`;
+  receiptTotal.textContent = `$${total.toFixed(2)}`;
+  
+  receiptModal.classList.remove('hidden');
 }
 
 // Boot
