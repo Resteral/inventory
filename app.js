@@ -509,7 +509,12 @@ function setupEventListeners() {
   btnSeatTable.addEventListener('click', handleSeatTable);
   btnClearTable.addEventListener('click', handleClearTable);
   tableSeatSelect.addEventListener('change', handleSeatFilterChange);
-  tableMenuAdd.addEventListener('change', handleTableMenuAdd);
+  // Use event delegation on the panel for table-menu-add in case innerHTML rebuilds
+  tablePanel.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'table-menu-add') {
+      handleTableMenuAdd(e);
+    }
+  });
   btnSendKitchen.addEventListener('click', handleSendKitchen);
   btnCheckoutTable.addEventListener('click', handleTableCheckout);
   
