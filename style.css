@@ -261,12 +261,13 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
 .floor-settings {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
-  padding: 0.8rem 2rem;
-  background: linear-gradient(90deg, rgba(15,23,42,0.9), rgba(30,41,59,0.7));
+  gap: 1rem;
+  padding: 0.4rem 1.5rem;
+  background: rgba(15,23,42,0.85);
   border-bottom: 1px solid var(--border-color);
   transition: all var(--transition-smooth);
   flex-wrap: wrap;
+  font-size: 0.75rem;
 }
 .floor-settings.hidden {
   display: none;
@@ -274,28 +275,28 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
 .floor-setting-group {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 .floor-setting-group label {
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
   color: var(--text-muted);
-  min-width: 32px;
+  min-width: 28px;
 }
 .floor-setting-val {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--accent-primary);
-  min-width: 30px;
+  min-width: 26px;
   text-align: center;
 }
 .range-slider {
   -webkit-appearance: none;
   appearance: none;
-  width: 100px;
-  height: 4px;
+  width: 70px;
+  height: 3px;
   background: var(--border-color);
   border-radius: 2px;
   outline: none;
@@ -305,16 +306,16 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
 .range-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--accent-primary);
   cursor: pointer;
-  box-shadow: 0 0 6px var(--accent-primary-glow);
+  box-shadow: 0 0 4px var(--accent-primary-glow);
 }
 .range-slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--accent-primary);
   cursor: pointer;
@@ -324,10 +325,10 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
   background: rgba(0,0,0,0.4);
   color: var(--text-main);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
   font-family: inherit;
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 600;
   margin-bottom: 0;
   cursor: pointer;

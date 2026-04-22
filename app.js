@@ -12,6 +12,8 @@ const state = {
   currentTool: 'shelf', // shelf, cooler, register, door, eraser
   gridRows: 15,
   gridCols: 25,
+  gridCellSize: 45,
+  floorTheme: 'default',
   storeName: 'My Store',
   menu: [], // [{ id, name, price, category, description }]
   menuCategories: ['Appetizers', 'Entrees', 'Sides', 'Drinks', 'Desserts', 'Specials'],
@@ -330,20 +332,16 @@ function init() {
     }
   });
   
-  // Apply saved grid settings to sliders
+  // Apply saved grid settings to sliders and CSS
   gridRowsSlider.value = state.gridRows;
   gridColsSlider.value = state.gridCols;
   gridRowsVal.textContent = state.gridRows;
   gridColsVal.textContent = state.gridCols;
-  if (state.gridCellSize) {
-    gridCellSlider.value = state.gridCellSize;
-    gridCellVal.textContent = state.gridCellSize + 'px';
-    document.documentElement.style.setProperty('--grid-size', state.gridCellSize + 'px');
-  }
-  if (state.floorTheme) {
-    floorThemeSelect.value = state.floorTheme;
-    applyFloorTheme(state.floorTheme);
-  }
+  gridCellSlider.value = state.gridCellSize;
+  gridCellVal.textContent = state.gridCellSize + 'px';
+  document.documentElement.style.setProperty('--grid-size', state.gridCellSize + 'px');
+  floorThemeSelect.value = state.floorTheme;
+  applyFloorTheme(state.floorTheme);
   
   createGrid();
   setupEventListeners();
@@ -352,11 +350,13 @@ function init() {
 }
 
 // Generate the 2D Grid Cells
+let gridTouchMoveHandler = null;
 function createGrid() {
   storeGrid.innerHTML = '';
-  // Set explicit CSS grid inline if changed from CSS variables
-  storeGrid.style.gridTemplateColumns = `repeat(${state.gridCols}, var(--grid-size))`;
-  storeGrid.style.gridTemplateRows = `repeat(${state.gridRows}, var(--grid-size))`;
+  // Set explicit CSS grid template using current state
+  const cellSize = state.gridCellSize + 'px';
+  storeGrid.style.gridTemplateColumns = `repeat(${state.gridCols}, ${cellSize})`;
+  storeGrid.style.gridTemplateRows = `repeat(${state.gridRows}, ${cellSize})`;
 
   for (let r = 0; r < state.gridRows; r++) {
     for (let c = 0; c < state.gridCols; c++) {
@@ -379,10 +379,14 @@ function createGrid() {
     }
   }
 
+  // Remove old touchmove handler to prevent stacking
+  if (gridTouchMoveHandler) {
+    storeGrid.removeEventListener('touchmove', gridTouchMoveHandler);
+  }
   // Handle continuous finger sliding across the grid on phones
-  storeGrid.addEventListener('touchmove', (e) => {
+  gridTouchMoveHandler = (e) => {
     if (state.mode !== 'edit') return;
-    e.preventDefault(); // Stop Android Chrome pull-to-refresh / native scrolling
+    e.preventDefault();
     const touch = e.touches[0];
     const target = document.elementFromPoint(touch.clientX, touch.clientY);
     if (target) {
@@ -391,7 +395,8 @@ function createGrid() {
          handleCellInteraction(e, cell.dataset.row, cell.dataset.col);
        }
     }
-  }, { passive: false });
+  };
+  storeGrid.addEventListener('touchmove', gridTouchMoveHandler, { passive: false });
 }
 
 // Event Listeners setup
