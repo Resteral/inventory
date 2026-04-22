@@ -295,8 +295,8 @@ function showAuthError(msg) {
 
 // Paywall & Preview
 btnSubscribe.addEventListener('click', () => {
-  // Replace with actual Tebex or Stripe checkout link
-  window.open('https://tebex.io', '_blank'); 
+  // Replace with your Stripe Payment Link or Stripe Checkout URL
+  window.open('https://buy.stripe.com/test_placeholder', '_blank'); 
 });
 
 btnPreview.addEventListener('click', () => {
