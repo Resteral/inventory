@@ -74,6 +74,7 @@ const authLogoutBtn = document.getElementById('auth-logout-btn');
 const btnSubscribe = document.getElementById('btn-subscribe');
 const btnPreview = document.getElementById('btn-preview');
 const previewBadge = document.getElementById('preview-badge');
+const btnUpgradePro = document.getElementById('btn-upgrade-pro');
 
 // POS Elements
 const posPanel = document.getElementById('pos-panel');
@@ -260,6 +261,7 @@ async function handleAuth() {
     if (session) {
       authModal.classList.add('hidden');
       previewBadge.classList.add('hidden');
+      btnUpgradePro.classList.add('hidden');
       state.isPreview = false;
       authLogoutBtn.style.display = 'block';
     } else {
@@ -272,6 +274,7 @@ async function handleAuth() {
       if (session) {
         authModal.classList.add('hidden');
         previewBadge.classList.add('hidden');
+        btnUpgradePro.classList.add('hidden');
         state.isPreview = false;
         authLogoutBtn.style.display = 'block';
       } else {
@@ -300,7 +303,12 @@ btnPreview.addEventListener('click', () => {
   state.isPreview = true;
   authModal.classList.add('hidden');
   previewBadge.classList.remove('hidden');
+  btnUpgradePro.classList.remove('hidden');
   console.log("Entering Preview Mode...");
+});
+
+btnUpgradePro.addEventListener('click', () => {
+  authModal.classList.remove('hidden');
 });
 
 btnLogin.addEventListener('click', async () => {
