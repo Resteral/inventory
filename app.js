@@ -12,6 +12,9 @@ const state = {
   currentTool: 'shelf', // shelf, cooler, register, door, eraser
   gridRows: 15,
   gridCols: 25,
+  storeName: 'My Store',
+  menu: [], // [{ id, name, price, category, description }]
+  menuCategories: ['Appetizers', 'Entrees', 'Sides', 'Drinks', 'Desserts', 'Specials'],
   fixtures: {}, // id: { type, row, col, products: [] }
   selectedFixtureId: null,
   logistics: [], // [{ id, type, vendor, date, items: [], status }]
@@ -117,20 +120,52 @@ const tableSeatsInput = document.getElementById('table-seats');
 const btnSeatTable = document.getElementById('btn-seat-table');
 const btnClearTable = document.getElementById('btn-clear-table');
 const tableOrdersContainer = document.getElementById('table-orders-container');
+const tableSeatSelect = document.getElementById('table-seat-select');
 const tableMenuAdd = document.getElementById('table-menu-add');
 const tableOrderList = document.getElementById('table-order-list');
+const tableRunningTotal = document.getElementById('table-running-total');
 const btnSendKitchen = document.getElementById('btn-send-kitchen');
 const btnCheckoutTable = document.getElementById('btn-checkout-table');
 
 const receiptModal = document.getElementById('receipt-modal');
 const receiptDate = document.getElementById('receipt-date');
 const receiptOrderId = document.getElementById('receipt-order-id');
+const receiptTableInfo = document.getElementById('receipt-table-info');
+const receiptServerInfo = document.getElementById('receipt-server-info');
 const receiptItems = document.getElementById('receipt-items');
 const receiptSubtotal = document.getElementById('receipt-subtotal');
 const receiptTax = document.getElementById('receipt-tax');
 const receiptTotal = document.getElementById('receipt-total');
+const receiptCheckInfo = document.getElementById('receipt-check-info');
 const btnCloseReceipt = document.getElementById('btn-close-receipt');
+const btnNextReceipt = document.getElementById('btn-next-receipt');
 const btnPrintReceipt = document.getElementById('btn-print-receipt');
+
+// Floor Plan Settings Elements
+const floorSettingsToggle = document.getElementById('floor-settings-toggle');
+const floorSettings = document.getElementById('floor-settings');
+const gridRowsSlider = document.getElementById('grid-rows-slider');
+const gridColsSlider = document.getElementById('grid-cols-slider');
+const gridCellSlider = document.getElementById('grid-cell-slider');
+const gridRowsVal = document.getElementById('grid-rows-val');
+const gridColsVal = document.getElementById('grid-cols-val');
+const gridCellVal = document.getElementById('grid-cell-val');
+const floorThemeSelect = document.getElementById('floor-theme-select');
+const applyGridBtn = document.getElementById('apply-grid-btn');
+
+// Split Check Elements
+const splitCheckModal = document.getElementById('split-check-modal');
+const closeSplitCheck = document.getElementById('close-split-check');
+const btnSingleCheck = document.getElementById('btn-single-check');
+const btnPerSeatCheck = document.getElementById('btn-per-seat-check');
+const btnCustomSplit = document.getElementById('btn-custom-split');
+const splitCheckSeats = document.getElementById('split-check-seats');
+const splitCheckSummary = document.getElementById('split-check-summary');
+const btnProcessChecks = document.getElementById('btn-process-checks');
+
+// Receipt queue for multi-check display
+let receiptQueue = [];
+let receiptQueueIndex = 0;
 
 // Icons Mapping
 const icons = {
@@ -158,7 +193,14 @@ function saveState() {
   localStorage.setItem(DB_KEY, JSON.stringify({
     fixtures: state.fixtures,
     logistics: state.logistics,
-    salesData: state.salesData
+    salesData: state.salesData,
+    gridRows: state.gridRows,
+    gridCols: state.gridCols,
+    gridCellSize: state.gridCellSize || 45,
+    floorTheme: state.floorTheme || 'default',
+    storeName: state.storeName || 'My Store',
+    menu: state.menu || [],
+    menuCategories: state.menuCategories
   }));
 }
 
@@ -168,12 +210,17 @@ function loadState() {
     try {
       const parsed = JSON.parse(saved);
       if (parsed.fixtures !== undefined) {
-        // New save format
         state.fixtures = parsed.fixtures;
         state.logistics = parsed.logistics || [];
         state.salesData = parsed.salesData || {};
+        if (parsed.gridRows) state.gridRows = parsed.gridRows;
+        if (parsed.gridCols) state.gridCols = parsed.gridCols;
+        if (parsed.gridCellSize) state.gridCellSize = parsed.gridCellSize;
+        if (parsed.floorTheme) state.floorTheme = parsed.floorTheme;
+        if (parsed.storeName) state.storeName = parsed.storeName;
+        if (parsed.menu) state.menu = parsed.menu;
+        if (parsed.menuCategories) state.menuCategories = parsed.menuCategories;
       } else {
-        // Legacy save format
         state.fixtures = parsed;
         state.logistics = [];
         state.salesData = {};
@@ -258,10 +305,46 @@ authLogoutBtn.addEventListener('click', async () => {
   if (dbClient) await dbClient.auth.signOut();
 });
 
+function applyStoreName() {
+  const name = state.storeName || 'My Store';
+  document.getElementById('store-name-display').textContent = name;
+  document.getElementById('receipt-store-name').textContent = name;
+  document.title = `${name} - Layout & Inventory Mapper`;
+}
+
 // Initialize App
 function init() {
   handleAuth();
   loadState();
+  
+  // Apply store name
+  applyStoreName();
+  
+  // Click to rename store
+  document.getElementById('store-name-container').addEventListener('click', () => {
+    const newName = prompt('Enter your store name:', state.storeName);
+    if (newName && newName.trim()) {
+      state.storeName = newName.trim();
+      applyStoreName();
+      saveState();
+    }
+  });
+  
+  // Apply saved grid settings to sliders
+  gridRowsSlider.value = state.gridRows;
+  gridColsSlider.value = state.gridCols;
+  gridRowsVal.textContent = state.gridRows;
+  gridColsVal.textContent = state.gridCols;
+  if (state.gridCellSize) {
+    gridCellSlider.value = state.gridCellSize;
+    gridCellVal.textContent = state.gridCellSize + 'px';
+    document.documentElement.style.setProperty('--grid-size', state.gridCellSize + 'px');
+  }
+  if (state.floorTheme) {
+    floorThemeSelect.value = state.floorTheme;
+    applyFloorTheme(state.floorTheme);
+  }
+  
   createGrid();
   setupEventListeners();
   renderFixtures();
@@ -399,12 +482,36 @@ function setupEventListeners() {
   closeTableBtn.addEventListener('click', closeTablePanel);
   btnSeatTable.addEventListener('click', handleSeatTable);
   btnClearTable.addEventListener('click', handleClearTable);
+  tableSeatSelect.addEventListener('change', handleSeatFilterChange);
   tableMenuAdd.addEventListener('change', handleTableMenuAdd);
   btnSendKitchen.addEventListener('click', handleSendKitchen);
   btnCheckoutTable.addEventListener('click', handleTableCheckout);
   
-  btnCloseReceipt.addEventListener('click', () => receiptModal.classList.add('hidden'));
+  btnCloseReceipt.addEventListener('click', handleCloseReceipt);
+  btnNextReceipt.addEventListener('click', handleNextReceipt);
   btnPrintReceipt.addEventListener('click', () => window.print());
+
+  // Floor Plan Settings
+  floorSettingsToggle.addEventListener('click', () => {
+    floorSettings.classList.toggle('hidden');
+  });
+  gridRowsSlider.addEventListener('input', () => {
+    gridRowsVal.textContent = gridRowsSlider.value;
+  });
+  gridColsSlider.addEventListener('input', () => {
+    gridColsVal.textContent = gridColsSlider.value;
+  });
+  gridCellSlider.addEventListener('input', () => {
+    gridCellVal.textContent = gridCellSlider.value + 'px';
+  });
+  applyGridBtn.addEventListener('click', applyGridSettings);
+
+  // Split Check
+  closeSplitCheck.addEventListener('click', () => splitCheckModal.classList.add('hidden'));
+  btnSingleCheck.addEventListener('click', () => applySplitPreset('single'));
+  btnPerSeatCheck.addEventListener('click', () => applySplitPreset('per-seat'));
+  btnCustomSplit.addEventListener('click', () => applySplitPreset('custom'));
+  btnProcessChecks.addEventListener('click', processAndPrintChecks);
 }
 
 // Switch between Edit Layout and Manage Inventory modes
@@ -489,6 +596,17 @@ function renderFixtures() {
   // Clear existing rendered fixtures
   document.querySelectorAll('.fixture').forEach(f => f.remove());
 
+  // Count table numbers for labeling
+  let tableCounter = 0;
+  const tableNumbers = {};
+  Object.values(state.fixtures)
+    .filter(f => f.type === 'table')
+    .sort((a, b) => (a.row * 100 + a.col) - (b.row * 100 + b.col))
+    .forEach(f => {
+      tableCounter++;
+      tableNumbers[f.id] = tableCounter;
+    });
+
   // Generate DOM nodes for fixtures
   Object.values(state.fixtures).forEach(fixture => {
     // Find parent cell
@@ -504,7 +622,13 @@ function renderFixtures() {
       fDiv.classList.add('table-seated');
     }
 
-    fDiv.innerHTML = `<span class="material-symbols-outlined">${icons[fixture.type]}</span>`;
+    // Add label for tables (T1, T2...) and registers (R1, R2...)
+    let labelHtml = '';
+    if (fixture.type === 'table' && tableNumbers[fixture.id]) {
+      labelHtml = `<span class="fixture-label">T${tableNumbers[fixture.id]}</span>`;
+    }
+
+    fDiv.innerHTML = `<span class="material-symbols-outlined">${icons[fixture.type]}</span>${labelHtml}`;
     
     // Fixture click listener
     fDiv.addEventListener('mousedown', (e) => handleFixtureClick(e, fixture.id));
@@ -1456,44 +1580,131 @@ function renderTablePanel(fixture) {
      tableOrdersContainer.style.opacity = '1';
      tableOrdersContainer.style.pointerEvents = 'auto';
      btnSeatTable.disabled = true;
+     
+     // Build seat selector dropdown
+     const currentFilter = tableSeatSelect.value;
+     tableSeatSelect.innerHTML = '<option value="all">All Seats</option>';
+     for (let s = 1; s <= fixture.seats; s++) {
+       const opt = document.createElement('option');
+       opt.value = s;
+       opt.textContent = `Seat ${s}`;
+       tableSeatSelect.appendChild(opt);
+     }
+     // Restore previous selection if still valid
+     if (currentFilter !== 'all' && parseInt(currentFilter) <= fixture.seats) {
+       tableSeatSelect.value = currentFilter;
+     } else {
+       tableSeatSelect.value = 'all';
+     }
   } else {
      tableServiceStatus.textContent = `Available`;
      tableOrdersContainer.style.opacity = '0.5';
      tableOrdersContainer.style.pointerEvents = 'none';
      btnSeatTable.disabled = false;
+     tableSeatSelect.innerHTML = '<option value="all">All Seats</option>';
   }
   
-  // Build menu
-  tableMenuAdd.innerHTML = '<option value="">- Add Menu Item (from Inventory) -</option>';
+  // Build menu dropdown — includes restaurant menu + inventory
+  const selectedSeat = tableSeatSelect.value;
+  const seatLabel = selectedSeat === 'all' ? '' : ` (Seat ${selectedSeat})`;
+  tableMenuAdd.innerHTML = `<option value="">- Add Item${seatLabel} -</option>`;
+  
+  // Restaurant menu items first
+  if (state.menu && state.menu.length > 0) {
+    const menuGroup = document.createElement('optgroup');
+    menuGroup.label = '🍽️ Restaurant Menu';
+    // Group by category
+    const catOrder = {};
+    state.menu.forEach(m => {
+      if (!catOrder[m.category]) catOrder[m.category] = [];
+      catOrder[m.category].push(m);
+    });
+    Object.keys(catOrder).sort().forEach(cat => {
+      catOrder[cat].forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = `menu|${m.id}`;
+        opt.textContent = `${m.name} ($${m.price.toFixed(2)}) — ${cat}`;
+        menuGroup.appendChild(opt);
+      });
+    });
+    tableMenuAdd.appendChild(menuGroup);
+  }
+  
+  // Inventory items (from shelves, coolers, etc.)
   const products = getAllStoreProducts();
-  products.forEach(p => {
-    if (p.qty > 0) {
+  const invItems = products.filter(p => p.qty > 0);
+  if (invItems.length > 0) {
+    const invGroup = document.createElement('optgroup');
+    invGroup.label = '📦 Inventory';
+    invItems.forEach(p => {
        const opt = document.createElement('option');
        opt.value = `${p.sourceFixtureId}|${p.id}`;
        opt.textContent = `${p.name} ($${p.price.toFixed(2)}) - ${p.qty} in stock`;
-       tableMenuAdd.appendChild(opt);
-    }
-  });
+       invGroup.appendChild(opt);
+    });
+    tableMenuAdd.appendChild(invGroup);
+  }
   
+  // Render orders grouped by seat
   tableOrderList.innerHTML = '';
-  if (!fixture.order || fixture.order.length === 0) {
+  const orders = fixture.order || [];
+  let runningTotal = 0;
+  orders.forEach(item => runningTotal += (item.price * item.qtyToSell));
+  
+  if (orders.length === 0) {
      tableOrderList.innerHTML = `<li class="instruction-text" style="text-align:center; padding: 1rem 0;">No items ordered.</li>`;
   } else {
-     fixture.order.forEach((item, idx) => {
-        const li = document.createElement('li');
-        li.className = 'product-item';
-        li.style.background = item.sent ? 'rgba(0,0,0,0.5)' : 'rgba(245, 158, 11, 0.1)';
-        li.innerHTML = `
-          <div class="prod-info">
-            <h4>${item.name} ${item.sent ? '<span style="color:#6366f1; font-size:0.7rem; vertical-align:top;">(Sent to Kitchen)</span>' : ''}</h4>
-            <div class="prod-details">Qty: ${item.qtyToSell} • <span style="color:var(--accent-warning);">$${item.price.toFixed(2)}</span></div>
-          </div>
-          <button class="icon-btn del-btn" style="position:static" onclick="removeTableOrderItem('${fixture.id}', ${idx})">
-             <span class="material-symbols-outlined">delete</span>
-          </button>
-        `;
-        tableOrderList.appendChild(li);
+     // Group by seat
+     const seatGroups = {};
+     orders.forEach((item, idx) => {
+        const seatNum = item.seat || 1;
+        if (!seatGroups[seatNum]) seatGroups[seatNum] = [];
+        seatGroups[seatNum].push({ ...item, _idx: idx });
      });
+     
+     const seatFilter = tableSeatSelect.value;
+     const seatKeys = Object.keys(seatGroups).sort((a, b) => parseInt(a) - parseInt(b));
+     
+     seatKeys.forEach(seatNum => {
+        if (seatFilter !== 'all' && seatFilter !== seatNum) return;
+        
+        // Seat header
+        const headerLi = document.createElement('li');
+        headerLi.style.cssText = 'padding:0.5rem 0.8rem; margin-bottom:0.3rem; background:rgba(245,158,11,0.15); border-radius:6px; font-weight:700; font-size:0.82rem; letter-spacing:1px; color:#f59e0b; text-transform:uppercase; display:flex; align-items:center; gap:6px;';
+        headerLi.innerHTML = `<span class="material-symbols-outlined" style="font-size:1rem;">person</span> Seat ${seatNum}`;
+        tableOrderList.appendChild(headerLi);
+        
+        // Items for this seat
+        seatGroups[seatNum].forEach(item => {
+           const li = document.createElement('li');
+           li.className = 'product-item';
+           li.style.background = item.sent ? 'rgba(0,0,0,0.5)' : 'rgba(245, 158, 11, 0.08)';
+           li.style.marginLeft = '0.5rem';
+           li.style.borderLeft = '3px solid rgba(245,158,11,0.4)';
+           li.innerHTML = `
+             <div class="prod-info">
+               <h4>${item.name} ${item.sent ? '<span style="color:#6366f1; font-size:0.7rem; vertical-align:top;">(Sent to Kitchen)</span>' : ''}</h4>
+               <div class="prod-details">Qty: ${item.qtyToSell} • <span style="color:var(--accent-warning);">$${(item.price * item.qtyToSell).toFixed(2)}</span></div>
+             </div>
+             <button class="icon-btn del-btn" style="position:static" onclick="removeTableOrderItem('${fixture.id}', ${item._idx})">
+                <span class="material-symbols-outlined">delete</span>
+             </button>
+           `;
+           tableOrderList.appendChild(li);
+        });
+     });
+  }
+  
+  // Update running total
+  if (tableRunningTotal) {
+    tableRunningTotal.textContent = `$${runningTotal.toFixed(2)}`;
+  }
+}
+
+function handleSeatFilterChange() {
+  const f = state.fixtures[state.selectedFixtureId];
+  if (f && f.type === 'table') {
+    renderTablePanel(f);
   }
 }
 
@@ -1528,36 +1739,70 @@ function handleClearTable() {
 function handleTableMenuAdd(e) {
   const valString = e.target.value;
   if(!valString) return;
-  const [fId, pId] = valString.split('|');
-  const sourceF = state.fixtures[fId];
-  const prod = sourceF?.products.find(p => p.id === pId);
   const f = state.fixtures[state.selectedFixtureId];
+  if (!f || f.type !== 'table') { e.target.value = ''; return; }
   
-  if (prod && f && f.type === 'table') {
-     f.order = f.order || [];
-     const existing = f.order.find(o => o.id === prod.id && !o.sent);
-     
-     // Stock Check
-     const totalOrdered = f.order.reduce((sum, o) => o.id === prod.id ? sum + o.qtyToSell : sum, 0);
-     if (totalOrdered + 1 > prod.qty) {
-        alert("Not enough stock for this menu item!");
+  // Determine which seat to assign this item to
+  let seatNum = parseInt(tableSeatSelect.value);
+  if (isNaN(seatNum) || tableSeatSelect.value === 'all') {
+    seatNum = 1;
+  }
+  
+  f.order = f.order || [];
+  const [prefix, itemId] = valString.split('|');
+  
+  if (prefix === 'menu') {
+    // Restaurant menu item (no inventory deduction)
+    const menuItem = state.menu.find(m => m.id === itemId);
+    if (!menuItem) { e.target.value = ''; return; }
+    
+    const existing = f.order.find(o => o.id === menuItem.id && !o.sent && o.seat === seatNum);
+    if (existing) {
+      existing.qtyToSell += 1;
+    } else {
+      f.order.push({
+        id: menuItem.id,
+        name: menuItem.name,
+        price: menuItem.price,
+        sourceFixtureId: 'menu',
+        qtyToSell: 1,
+        sent: false,
+        seat: seatNum
+      });
+    }
+    renderTablePanel(f);
+    saveState();
+  } else {
+    // Inventory item (deducts stock on checkout)
+    const sourceF = state.fixtures[prefix];
+    const prod = sourceF?.products.find(p => p.id === itemId);
+    
+    if (prod) {
+      const existing = f.order.find(o => o.id === prod.id && !o.sent && o.seat === seatNum);
+      
+      // Stock Check across all seats
+      const totalOrdered = f.order.reduce((sum, o) => o.id === prod.id ? sum + o.qtyToSell : sum, 0);
+      if (totalOrdered + 1 > prod.qty) {
+        alert("Not enough stock for this item!");
         e.target.value = '';
         return;
-     }
+      }
 
-     if (existing) existing.qtyToSell += 1;
-     else {
-       f.order.push({
-         id: prod.id,
-         name: prod.name,
-         price: prod.price,
-         sourceFixtureId: fId,
-         qtyToSell: 1,
-         sent: false
-       });
-     }
-     renderTablePanel(f);
-     saveState();
+      if (existing) existing.qtyToSell += 1;
+      else {
+        f.order.push({
+          id: prod.id,
+          name: prod.name,
+          price: prod.price,
+          sourceFixtureId: prefix,
+          qtyToSell: 1,
+          sent: false,
+          seat: seatNum
+        });
+      }
+      renderTablePanel(f);
+      saveState();
+    }
   }
   e.target.value = '';
 }
@@ -1588,28 +1833,246 @@ function handleTableCheckout() {
   const f = state.fixtures[state.selectedFixtureId];
   if(!f || !f.order || f.order.length === 0) return alert("No items on table to checkout.");
   
-  let subtotal = 0;
-  f.order.forEach(item => {
-    subtotal += (item.price * item.qtyToSell);
-    // Deduct stock
-    const sourceFixture = state.fixtures[item.sourceFixtureId];
-    if(sourceFixture) {
-       const realProd = sourceFixture.products.find(p => p.id === item.id);
-       if(realProd) realProd.qty -= item.qtyToSell;
+  // Open the split check modal instead of immediately generating receipt
+  openSplitCheckModal(f);
+}
+
+// ===== Floor Plan Settings =====
+function applyGridSettings() {
+  const newRows = parseInt(gridRowsSlider.value);
+  const newCols = parseInt(gridColsSlider.value);
+  const newCellSize = parseInt(gridCellSlider.value);
+  const newTheme = floorThemeSelect.value;
+  
+  // Remove fixtures that would be out of bounds
+  Object.keys(state.fixtures).forEach(id => {
+    const f = state.fixtures[id];
+    if (parseInt(f.row) >= newRows || parseInt(f.col) >= newCols) {
+      delete state.fixtures[id];
+    }
+  });
+  
+  state.gridRows = newRows;
+  state.gridCols = newCols;
+  state.gridCellSize = newCellSize;
+  state.floorTheme = newTheme;
+  
+  document.documentElement.style.setProperty('--grid-size', newCellSize + 'px');
+  applyFloorTheme(newTheme);
+  
+  createGrid();
+  renderFixtures();
+  updateStats();
+  saveState();
+}
+
+function applyFloorTheme(theme) {
+  const grid = document.getElementById('store-grid');
+  // Remove existing theme classes
+  grid.classList.remove('floor-theme-default', 'floor-theme-hardwood', 'floor-theme-marble', 'floor-theme-tile', 'floor-theme-blueprint');
+  grid.classList.add(`floor-theme-${theme}`);
+}
+
+// ===== Split Check System =====
+let splitCheckFixture = null;
+let splitCheckMode = 'single'; // 'single', 'per-seat', 'custom'
+
+function openSplitCheckModal(fixture) {
+  splitCheckFixture = fixture;
+  splitCheckModal.classList.remove('hidden');
+  applySplitPreset('single');
+}
+
+function applySplitPreset(mode) {
+  splitCheckMode = mode;
+  
+  // Update preset button styles
+  [btnSingleCheck, btnPerSeatCheck, btnCustomSplit].forEach(b => b.classList.remove('btn-active'));
+  if (mode === 'single') btnSingleCheck.classList.add('btn-active');
+  if (mode === 'per-seat') btnPerSeatCheck.classList.add('btn-active');
+  if (mode === 'custom') btnCustomSplit.classList.add('btn-active');
+  
+  renderSplitCheckSeats();
+}
+
+function renderSplitCheckSeats() {
+  if (!splitCheckFixture || !splitCheckFixture.order) return;
+  splitCheckSeats.innerHTML = '';
+  
+  // Group orders by seat
+  const seatGroups = {};
+  splitCheckFixture.order.forEach(item => {
+    const s = item.seat || 1;
+    if (!seatGroups[s]) seatGroups[s] = [];
+    seatGroups[s].push(item);
+  });
+  
+  const seatKeys = Object.keys(seatGroups).sort((a, b) => parseInt(a) - parseInt(b));
+  const maxCheckNum = seatKeys.length;
+  
+  seatKeys.forEach(seatNum => {
+    const items = seatGroups[seatNum];
+    let seatTotal = 0;
+    const itemNames = [];
+    items.forEach(i => {
+      seatTotal += i.price * i.qtyToSell;
+      itemNames.push(`${i.qtyToSell}x ${i.name}`);
+    });
+    
+    // Determine default check assignment based on mode
+    let defaultCheck = 1;
+    if (splitCheckMode === 'per-seat') defaultCheck = parseInt(seatNum);
+    if (splitCheckMode === 'custom') defaultCheck = 1;
+    
+    const card = document.createElement('div');
+    card.className = 'split-seat-card';
+    card.dataset.seat = seatNum;
+    
+    // Build check options
+    let optionsHtml = '';
+    for (let c = 1; c <= maxCheckNum; c++) {
+      optionsHtml += `<option value="${c}" ${c === defaultCheck ? 'selected' : ''}>Check ${c}</option>`;
     }
     
-    // Log target Sales Data
+    card.innerHTML = `
+      <div class="split-seat-icon">
+        <span class="material-symbols-outlined">person</span>
+      </div>
+      <div class="split-seat-info">
+        <h4>Seat ${seatNum}</h4>
+        <small>${itemNames.join(', ')}</small>
+      </div>
+      <div style="text-align:right; margin-right:0.5rem;">
+        <span style="font-weight:800; color:var(--accent-warning);">$${seatTotal.toFixed(2)}</span>
+      </div>
+      <select class="split-seat-select" data-seat="${seatNum}">
+        ${optionsHtml}
+      </select>
+    `;
+    
+    const select = card.querySelector('select');
+    select.addEventListener('change', updateSplitCheckSummary);
+    
+    splitCheckSeats.appendChild(card);
+  });
+  
+  updateSplitCheckSummary();
+}
+
+function updateSplitCheckSummary() {
+  if (!splitCheckFixture) return;
+  
+  const seatAssignments = {};
+  splitCheckSeats.querySelectorAll('.split-seat-select').forEach(sel => {
+    seatAssignments[sel.dataset.seat] = parseInt(sel.value);
+  });
+  
+  // Group items by check
+  const checks = {};
+  splitCheckFixture.order.forEach(item => {
+    const seatNum = item.seat || 1;
+    const checkNum = seatAssignments[seatNum] || 1;
+    if (!checks[checkNum]) checks[checkNum] = { items: [], subtotal: 0 };
+    checks[checkNum].items.push(item);
+    checks[checkNum].subtotal += item.price * item.qtyToSell;
+  });
+  
+  splitCheckSummary.innerHTML = '';
+  Object.keys(checks).sort((a,b) => a - b).forEach(checkNum => {
+    const check = checks[checkNum];
+    const tax = check.subtotal * 0.08;
+    const total = check.subtotal + tax;
+    const seatList = [];
+    Object.entries(seatAssignments).forEach(([seat, chk]) => {
+      if (chk === parseInt(checkNum)) seatList.push(`S${seat}`);
+    });
+    
+    const div = document.createElement('div');
+    div.className = 'split-check-total-card';
+    div.innerHTML = `
+      <span>
+        <span class="check-label">Check ${checkNum}</span>
+        <span style="color:var(--text-muted); font-size:0.75rem; margin-left:0.5rem;">(${seatList.join(', ')})</span>
+      </span>
+      <span class="check-amount">$${total.toFixed(2)}</span>
+    `;
+    splitCheckSummary.appendChild(div);
+  });
+}
+
+function processAndPrintChecks() {
+  if (!splitCheckFixture) return;
+  const f = splitCheckFixture;
+  
+  // Get seat assignments
+  const seatAssignments = {};
+  splitCheckSeats.querySelectorAll('.split-seat-select').forEach(sel => {
+    seatAssignments[sel.dataset.seat] = parseInt(sel.value);
+  });
+  
+  // Deduct stock and log sales for ALL items first
+  f.order.forEach(item => {
+    // Only deduct stock for inventory items (not restaurant menu items)
+    if (item.sourceFixtureId !== 'menu') {
+      const sourceFixture = state.fixtures[item.sourceFixtureId];
+      if(sourceFixture) {
+         const realProd = sourceFixture.products.find(p => p.id === item.id);
+         if(realProd) realProd.qty -= item.qtyToSell;
+      }
+    }
     const revVal = item.price * item.qtyToSell;
     if (!state.salesData[item.name]) state.salesData[item.name] = { revenue: 0, qtySold: 0 };
     state.salesData[item.name].revenue += revVal;
     state.salesData[item.name].qtySold += item.qtyToSell;
   });
   
-  const tax = subtotal * 0.08;
-  const total = subtotal + tax;
+  // Build receipts per check
+  const checks = {};
+  f.order.forEach(item => {
+    const seatNum = item.seat || 1;
+    const checkNum = seatAssignments[seatNum] || 1;
+    if (!checks[checkNum]) checks[checkNum] = [];
+    checks[checkNum].push(item);
+  });
   
-  generateReceiptModal(f.order, subtotal, tax, total, `Table ${f.row+1}-${f.col+1}`);
+  const checkKeys = Object.keys(checks).sort((a,b) => a - b);
+  const totalChecks = checkKeys.length;
   
+  // Build receipt queue
+  receiptQueue = [];
+  receiptQueueIndex = 0;
+  
+  checkKeys.forEach(checkNum => {
+    const items = checks[checkNum];
+    let subtotal = 0;
+    items.forEach(i => subtotal += i.price * i.qtyToSell);
+    const tax = subtotal * 0.08;
+    const total = subtotal + tax;
+    
+    // Which seats are on this check
+    const seatsOnCheck = [];
+    Object.entries(seatAssignments).forEach(([seat, chk]) => {
+      if (chk === parseInt(checkNum)) seatsOnCheck.push(seat);
+    });
+    
+    receiptQueue.push({
+      fixture: f,
+      items,
+      subtotal,
+      tax,
+      total,
+      checkNum: parseInt(checkNum),
+      totalChecks,
+      seatsOnCheck,
+      // Payment info filled in later
+      paymentMethod: null,
+      tip: 0,
+      cashTendered: 0,
+      changeDue: 0
+    });
+  });
+  
+  // Clear the table
   f.status = 'available';
   f.seats = 0;
   f.order = [];
@@ -1619,35 +2082,664 @@ function handleTableCheckout() {
   renderFixtures();
   saveState();
   updateStats();
+  
+  // Close split check modal and start payment flow
+  splitCheckModal.classList.add('hidden');
+  closeTablePanel();
+  openPaymentForCurrentCheck();
 }
 
-// ----- Receipt Generator -----
-function generateReceiptModal(items, subtotal, tax, total, transactionType) {
-  receiptDate.textContent = `Date: ${new Date().toLocaleString()}`;
-  receiptOrderId.textContent = `Txn: ${transactionType} | ID: ${Math.floor(Math.random()*90000)+10000}`;
+// ===== Payment Terminal System =====
+const paymentModal = document.getElementById('payment-modal');
+const closePaymentBtn = document.getElementById('close-payment');
+const payCheckLabel = document.getElementById('pay-check-label');
+const payCheckSeats = document.getElementById('pay-check-seats');
+const payTotalDue = document.getElementById('pay-total-due');
+const paySubtax = document.getElementById('pay-subtax');
+const payTipDisplay = document.getElementById('pay-tip-display');
+const payFinalTotal = document.getElementById('pay-final-total');
+const payCustomTipRow = document.getElementById('pay-custom-tip-row');
+const payCustomTip = document.getElementById('pay-custom-tip');
+const payCashSection = document.getElementById('pay-cash-section');
+const payCashTendered = document.getElementById('pay-cash-tendered');
+const payQuickCash = document.getElementById('pay-quick-cash');
+const payChangeDue = document.getElementById('pay-change-due');
+const payChangeAmount = document.getElementById('pay-change-amount');
+const btnCompletePayment = document.getElementById('btn-complete-payment');
+const tipBtns = document.querySelectorAll('.pay-tip-btn');
+const methodBtns = document.querySelectorAll('.pay-method-btn');
+
+// Receipt payment info elements
+const receiptPaymentInfo = document.getElementById('receipt-payment-info');
+const receiptTipAmount = document.getElementById('receipt-tip-amount');
+const receiptGrandWithTip = document.getElementById('receipt-grand-with-tip');
+const receiptPayMethodLabel = document.getElementById('receipt-pay-method-label');
+const receiptPaidAmount = document.getElementById('receipt-paid-amount');
+const receiptChangeRow = document.getElementById('receipt-change-row');
+const receiptChangeAmt = document.getElementById('receipt-change-amount');
+
+let payCurrentTipPct = 20;
+let payCurrentMethod = 'card';
+let payCurrentCheckTotal = 0; // total before tip
+
+// Setup payment listeners
+closePaymentBtn.addEventListener('click', () => {
+  paymentModal.classList.add('hidden');
+});
+
+tipBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    tipBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const pct = btn.dataset.tipPct;
+    if (pct === 'custom') {
+      payCustomTipRow.classList.remove('hidden');
+      payCurrentTipPct = -1; // signals custom
+      payCustomTip.focus();
+    } else {
+      payCustomTipRow.classList.add('hidden');
+      payCurrentTipPct = parseInt(pct);
+    }
+    updatePaymentTotals();
+  });
+});
+
+payCustomTip.addEventListener('input', updatePaymentTotals);
+
+methodBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    methodBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    payCurrentMethod = btn.dataset.method;
+    if (payCurrentMethod === 'cash') {
+      payCashSection.classList.remove('hidden');
+      generateQuickCashButtons();
+    } else {
+      payCashSection.classList.add('hidden');
+    }
+  });
+});
+
+payCashTendered.addEventListener('input', updateCashChange);
+
+btnCompletePayment.addEventListener('click', completePayment);
+
+function openPaymentForCurrentCheck() {
+  if (receiptQueueIndex >= receiptQueue.length) return;
+  
+  const r = receiptQueue[receiptQueueIndex];
+  payCurrentCheckTotal = r.total;
+  payCurrentTipPct = 20;
+  payCurrentMethod = 'card';
+  
+  // Reset UI
+  payCheckLabel.textContent = r.totalChecks > 1 ? `Check ${r.checkNum} of ${r.totalChecks}` : 'Check';
+  payCheckSeats.textContent = `Seats: ${r.seatsOnCheck.join(', ')}`;
+  payTotalDue.textContent = `$${r.total.toFixed(2)}`;
+  paySubtax.textContent = `$${r.total.toFixed(2)}`;
+  
+  // Reset tips
+  tipBtns.forEach(b => b.classList.remove('active'));
+  document.querySelector('.pay-tip-btn[data-tip-pct="20"]').classList.add('active');
+  payCustomTipRow.classList.add('hidden');
+  payCustomTip.value = '';
+  
+  // Pre-calculate tip values for display
+  const preSubtotal = r.subtotal; // use pre-tax subtotal for tip calculation
+  document.getElementById('tip-15-val').textContent = `$${(preSubtotal * 0.15).toFixed(2)}`;
+  document.getElementById('tip-18-val').textContent = `$${(preSubtotal * 0.18).toFixed(2)}`;
+  document.getElementById('tip-20-val').textContent = `$${(preSubtotal * 0.20).toFixed(2)}`;
+  document.getElementById('tip-25-val').textContent = `$${(preSubtotal * 0.25).toFixed(2)}`;
+  
+  // Reset payment method
+  methodBtns.forEach(b => b.classList.remove('active'));
+  document.querySelector('.pay-method-btn[data-method="card"]').classList.add('active');
+  payCashSection.classList.add('hidden');
+  payCashTendered.value = '';
+  payChangeDue.classList.add('hidden');
+  
+  updatePaymentTotals();
+  paymentModal.classList.remove('hidden');
+}
+
+function updatePaymentTotals() {
+  const r = receiptQueue[receiptQueueIndex];
+  if (!r) return;
+  
+  let tipAmount = 0;
+  if (payCurrentTipPct === -1) {
+    // Custom tip
+    tipAmount = parseFloat(payCustomTip.value) || 0;
+  } else {
+    tipAmount = r.subtotal * (payCurrentTipPct / 100);
+  }
+  
+  const finalTotal = r.total + tipAmount;
+  
+  paySubtax.textContent = `$${r.total.toFixed(2)}`;
+  payTipDisplay.textContent = `$${tipAmount.toFixed(2)}`;
+  payFinalTotal.textContent = `$${finalTotal.toFixed(2)}`;
+  
+  // Update cash change if visible
+  if (payCurrentMethod === 'cash') {
+    updateCashChange();
+  }
+}
+
+function generateQuickCashButtons() {
+  payQuickCash.innerHTML = '';
+  const r = receiptQueue[receiptQueueIndex];
+  if (!r) return;
+  
+  let tipAmount = 0;
+  if (payCurrentTipPct === -1) {
+    tipAmount = parseFloat(payCustomTip.value) || 0;
+  } else {
+    tipAmount = r.subtotal * (payCurrentTipPct / 100);
+  }
+  const finalTotal = r.total + tipAmount;
+  
+  // Generate smart quick-tender amounts
+  const amounts = [];
+  const rounded = Math.ceil(finalTotal);
+  if (rounded > finalTotal) amounts.push(rounded);
+  
+  // Common bills
+  [5, 10, 20, 50, 100].forEach(bill => {
+    if (bill >= finalTotal && !amounts.includes(bill)) {
+      amounts.push(bill);
+    }
+  });
+  
+  // Exact amount
+  amounts.unshift(parseFloat(finalTotal.toFixed(2)));
+  
+  // Deduplicate and limit
+  const unique = [...new Set(amounts)].slice(0, 5);
+  
+  unique.forEach(amt => {
+    const btn = document.createElement('button');
+    btn.textContent = `$${amt.toFixed(2)}`;
+    btn.addEventListener('click', () => {
+      payCashTendered.value = amt.toFixed(2);
+      updateCashChange();
+    });
+    payQuickCash.appendChild(btn);
+  });
+}
+
+function updateCashChange() {
+  const r = receiptQueue[receiptQueueIndex];
+  if (!r) return;
+  
+  let tipAmount = 0;
+  if (payCurrentTipPct === -1) {
+    tipAmount = parseFloat(payCustomTip.value) || 0;
+  } else {
+    tipAmount = r.subtotal * (payCurrentTipPct / 100);
+  }
+  const finalTotal = r.total + tipAmount;
+  const tendered = parseFloat(payCashTendered.value) || 0;
+  
+  if (tendered > 0 && tendered >= finalTotal) {
+    const change = tendered - finalTotal;
+    payChangeDue.classList.remove('hidden');
+    payChangeAmount.textContent = `$${change.toFixed(2)}`;
+  } else if (tendered > 0) {
+    payChangeDue.classList.remove('hidden');
+    payChangeAmount.textContent = `Short $${(finalTotal - tendered).toFixed(2)}`;
+    payChangeAmount.style.color = 'var(--accent-danger)';
+  } else {
+    payChangeDue.classList.add('hidden');
+  }
+  // Reset color
+  if (tendered >= finalTotal) {
+    payChangeAmount.style.color = 'var(--accent-success)';
+  }
+}
+
+function completePayment() {
+  const r = receiptQueue[receiptQueueIndex];
+  if (!r) return;
+  
+  let tipAmount = 0;
+  if (payCurrentTipPct === -1) {
+    tipAmount = parseFloat(payCustomTip.value) || 0;
+  } else {
+    tipAmount = r.subtotal * (payCurrentTipPct / 100);
+  }
+  const finalTotal = r.total + tipAmount;
+  
+  // Validate cash
+  if (payCurrentMethod === 'cash') {
+    const tendered = parseFloat(payCashTendered.value) || 0;
+    if (tendered < finalTotal) {
+      alert(`Insufficient cash. Need $${finalTotal.toFixed(2)}, received $${tendered.toFixed(2)}.`);
+      return;
+    }
+    r.cashTendered = tendered;
+    r.changeDue = tendered - finalTotal;
+  }
+  
+  // Store payment info on receipt queue entry
+  r.paymentMethod = payCurrentMethod;
+  r.tip = tipAmount;
+  r.finalTotal = finalTotal;
+  
+  // Close payment and show receipt
+  paymentModal.classList.add('hidden');
+  showReceiptFromQueue();
+}
+
+function showReceiptFromQueue() {
+  if (receiptQueueIndex >= receiptQueue.length) return;
+  
+  const r = receiptQueue[receiptQueueIndex];
+  const now = new Date();
+  const orderId = Math.floor(Math.random()*90000)+10000;
+  
+  receiptDate.textContent = now.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  receiptOrderId.textContent = `Order #${orderId}`;
+  receiptTableInfo.textContent = `Table: Row ${r.fixture.row+1}, Col ${r.fixture.col+1}`;
+  receiptServerInfo.textContent = `Server: ${state.storeName} POS`;
+  
+  // Check info
+  if (r.totalChecks > 1) {
+    receiptCheckInfo.textContent = `CHECK ${r.checkNum} of ${r.totalChecks} — Seat${r.seatsOnCheck.length > 1 ? 's' : ''} ${r.seatsOnCheck.join(', ')}`;
+    receiptCheckInfo.style.display = 'block';
+  } else {
+    receiptCheckInfo.textContent = '';
+    receiptCheckInfo.style.display = 'none';
+  }
   
   receiptItems.innerHTML = '';
+  
+  // Group items by seat for this check
+  const seatGroups = {};
+  r.items.forEach(item => {
+    const seatNum = item.seat || 1;
+    if (!seatGroups[seatNum]) seatGroups[seatNum] = [];
+    seatGroups[seatNum].push(item);
+  });
+  
+  const seatKeys = Object.keys(seatGroups).sort((a, b) => parseInt(a) - parseInt(b));
+  
+  seatKeys.forEach(seatNum => {
+    const section = document.createElement('div');
+    section.className = 'receipt-seat-section';
+    
+    if (seatKeys.length > 1 || r.totalChecks > 1) {
+      const header = document.createElement('div');
+      header.className = 'receipt-seat-header';
+      header.textContent = `Seat ${seatNum}`;
+      section.appendChild(header);
+    }
+    
+    let seatTotal = 0;
+    seatGroups[seatNum].forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'receipt-item-row';
+      const maxName = item.name.length > 22 ? item.name.substring(0, 20) + '..' : item.name;
+      const lineTotal = item.price * item.qtyToSell;
+      seatTotal += lineTotal;
+      row.innerHTML = `
+        <span class="item-name">${item.qtyToSell}x ${maxName}</span>
+        <span class="item-price">$${lineTotal.toFixed(2)}</span>
+      `;
+      section.appendChild(row);
+    });
+    
+    if (seatKeys.length > 1) {
+      const seatSub = document.createElement('div');
+      seatSub.className = 'receipt-seat-subtotal';
+      seatSub.innerHTML = `<span>Seat ${seatNum} subtotal</span><span>$${seatTotal.toFixed(2)}</span>`;
+      section.appendChild(seatSub);
+    }
+    
+    receiptItems.appendChild(section);
+  });
+  
+  receiptSubtotal.textContent = `$${r.subtotal.toFixed(2)}`;
+  receiptTax.textContent = `$${r.tax.toFixed(2)}`;
+  receiptTotal.textContent = `$${r.total.toFixed(2)}`;
+  
+  // Payment info section
+  if (r.paymentMethod) {
+    receiptPaymentInfo.style.display = 'block';
+    receiptTipAmount.textContent = `$${r.tip.toFixed(2)}`;
+    receiptGrandWithTip.textContent = `$${r.finalTotal.toFixed(2)}`;
+    
+    const methodLabels = { card: 'Card', cash: 'Cash', gift: 'Gift Card' };
+    receiptPayMethodLabel.textContent = `Paid (${methodLabels[r.paymentMethod]}):`;
+    
+    if (r.paymentMethod === 'cash') {
+      receiptPaidAmount.textContent = `$${r.cashTendered.toFixed(2)}`;
+      receiptChangeRow.style.display = 'flex';
+      receiptChangeAmt.textContent = `$${r.changeDue.toFixed(2)}`;
+    } else {
+      receiptPaidAmount.textContent = `$${r.finalTotal.toFixed(2)}`;
+      receiptChangeRow.style.display = 'none';
+    }
+  } else {
+    receiptPaymentInfo.style.display = 'none';
+  }
+  
+  // Show/hide "Next Check" button
+  if (receiptQueueIndex < receiptQueue.length - 1) {
+    btnNextReceipt.style.display = 'block';
+    btnNextReceipt.textContent = `Ring Up Next Check (${receiptQueueIndex + 2} of ${receiptQueue.length}) ▶`;
+  } else {
+    btnNextReceipt.style.display = 'none';
+  }
+  
+  receiptModal.classList.remove('hidden');
+}
+
+function handleCloseReceipt() {
+  receiptModal.classList.add('hidden');
+  receiptQueue = [];
+  receiptQueueIndex = 0;
+  btnNextReceipt.style.display = 'none';
+}
+
+function handleNextReceipt() {
+  receiptModal.classList.add('hidden');
+  receiptQueueIndex++;
+  // Open payment for next check
+  openPaymentForCurrentCheck();
+}
+
+// ----- Receipt Generator (POS flat receipts) -----
+
+function generateReceiptModal(items, subtotal, tax, total, transactionType) {
+  const now = new Date();
+  const orderId = Math.floor(Math.random()*90000)+10000;
+  
+  receiptDate.textContent = now.toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  receiptOrderId.textContent = `Order #${orderId}`;
+  receiptTableInfo.textContent = transactionType;
+  receiptServerInfo.textContent = `Cashier: ${state.storeName} POS`;
+  receiptCheckInfo.textContent = '';
+  receiptCheckInfo.style.display = 'none';
+  btnNextReceipt.style.display = 'none';
+  receiptPaymentInfo.style.display = 'none';
+  
+  receiptItems.innerHTML = '';
+  
   items.forEach(item => {
-    const div = document.createElement('div');
-    div.style.display = 'flex';
-    div.style.justifyContent = 'space-between';
-    div.style.marginBottom = '0.3rem';
+    const row = document.createElement('div');
+    row.className = 'receipt-item-row';
+    const maxName = item.name.length > 22 ? item.name.substring(0, 20) + '..' : item.name;
+    const lineTotal = item.price * item.qtyToSell;
     
-    // Formatting name length for receipt ticker
-    const maxName = item.name.length > 20 ? item.name.substring(0,18)+'..' : item.name;
-    const namePart = `${item.qtyToSell}x ${maxName}`;
-    const pricePart = `$${(item.price * item.qtyToSell).toFixed(2)}`;
-    
-    div.innerHTML = `<span>${namePart}</span><span>${pricePart}</span>`;
-    receiptItems.appendChild(div);
+    row.innerHTML = `
+      <span class="item-name">${item.qtyToSell}x ${maxName}</span>
+      <span class="item-price">$${lineTotal.toFixed(2)}</span>
+    `;
+    receiptItems.appendChild(row);
   });
   
   receiptSubtotal.textContent = `$${subtotal.toFixed(2)}`;
   receiptTax.textContent = `$${tax.toFixed(2)}`;
   receiptTotal.textContent = `$${total.toFixed(2)}`;
   
+  receiptQueue = [];
+  receiptQueueIndex = 0;
   receiptModal.classList.remove('hidden');
 }
+
+// ===== Menu Management System =====
+const menuModal = document.getElementById('menu-modal');
+const closeMenuModal = document.getElementById('close-menu-modal');
+const menuFormTitle = document.getElementById('menu-form-title');
+const menuItemCategory = document.getElementById('menu-item-category');
+const menuItemName = document.getElementById('menu-item-name');
+const menuItemPrice = document.getElementById('menu-item-price');
+const menuItemDesc = document.getElementById('menu-item-desc');
+const btnAddMenuItem = document.getElementById('btn-add-menu-item');
+const btnCancelMenuEdit = document.getElementById('btn-cancel-menu-edit');
+const menuCustomCat = document.getElementById('menu-custom-cat');
+const btnAddCategory = document.getElementById('btn-add-category');
+const menuCsvUpload = document.getElementById('menu-csv-upload');
+const menuCategoryTabs = document.getElementById('menu-category-tabs');
+const menuItemsBody = document.getElementById('menu-items-body');
+const menuTotalItems = document.getElementById('menu-total-items');
+const menuTotalCats = document.getElementById('menu-total-cats');
+
+let menuEditId = null; // null = add mode, string = editing
+let menuFilterCategory = 'All';
+
+// Open/close
+document.getElementById('menu-mgmt-btn').addEventListener('click', () => {
+  menuModal.classList.remove('hidden');
+  menuEditId = null;
+  clearMenuForm();
+  syncMenuCategoryDropdown();
+  renderMenuTable();
+  renderMenuCategoryTabs();
+});
+closeMenuModal.addEventListener('click', () => menuModal.classList.add('hidden'));
+
+// Add / Edit item
+btnAddMenuItem.addEventListener('click', () => {
+  const name = menuItemName.value.trim();
+  const price = parseFloat(menuItemPrice.value);
+  const category = menuItemCategory.value;
+  const desc = menuItemDesc.value.trim();
+  
+  if (!name) return alert('Enter an item name.');
+  if (isNaN(price) || price < 0) return alert('Enter a valid price.');
+  
+  if (menuEditId) {
+    // Edit existing
+    const item = state.menu.find(m => m.id === menuEditId);
+    if (item) {
+      item.name = name;
+      item.price = price;
+      item.category = category;
+      item.description = desc;
+    }
+    menuEditId = null;
+    menuFormTitle.textContent = 'Add Menu Item';
+    btnAddMenuItem.textContent = 'Add to Menu';
+    btnCancelMenuEdit.style.display = 'none';
+  } else {
+    // Add new
+    state.menu.push({
+      id: 'mi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+      name,
+      price,
+      category,
+      description: desc
+    });
+  }
+  
+  clearMenuForm();
+  renderMenuTable();
+  renderMenuCategoryTabs();
+  saveState();
+});
+
+// Cancel edit
+btnCancelMenuEdit.addEventListener('click', () => {
+  menuEditId = null;
+  menuFormTitle.textContent = 'Add Menu Item';
+  btnAddMenuItem.textContent = 'Add to Menu';
+  btnCancelMenuEdit.style.display = 'none';
+  clearMenuForm();
+});
+
+// Add custom category
+btnAddCategory.addEventListener('click', () => {
+  const cat = menuCustomCat.value.trim();
+  if (!cat) return;
+  if (!state.menuCategories.includes(cat)) {
+    state.menuCategories.push(cat);
+    syncMenuCategoryDropdown();
+    renderMenuCategoryTabs();
+    saveState();
+  }
+  menuCustomCat.value = '';
+  menuItemCategory.value = cat;
+});
+
+// CSV Import
+menuCsvUpload.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const text = ev.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    let imported = 0;
+    
+    lines.forEach((line, idx) => {
+      // Skip header row if it looks like one
+      if (idx === 0 && line.toLowerCase().includes('category') && line.toLowerCase().includes('name')) return;
+      
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 3) {
+        const category = parts[0];
+        const name = parts[1];
+        const price = parseFloat(parts[2]);
+        const desc = parts[3] || '';
+        
+        if (name && !isNaN(price)) {
+          // Add category if new
+          if (!state.menuCategories.includes(category)) {
+            state.menuCategories.push(category);
+          }
+          
+          state.menu.push({
+            id: 'mi_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + idx,
+            name,
+            price,
+            category,
+            description: desc
+          });
+          imported++;
+        }
+      }
+    });
+    
+    syncMenuCategoryDropdown();
+    renderMenuTable();
+    renderMenuCategoryTabs();
+    saveState();
+    alert(`Imported ${imported} menu items.`);
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+function clearMenuForm() {
+  menuItemName.value = '';
+  menuItemPrice.value = '';
+  menuItemDesc.value = '';
+}
+
+function syncMenuCategoryDropdown() {
+  const currentVal = menuItemCategory.value;
+  menuItemCategory.innerHTML = '';
+  state.menuCategories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    menuItemCategory.appendChild(opt);
+  });
+  if (state.menuCategories.includes(currentVal)) {
+    menuItemCategory.value = currentVal;
+  }
+}
+
+function renderMenuCategoryTabs() {
+  menuCategoryTabs.innerHTML = '';
+  
+  const allBtn = document.createElement('button');
+  allBtn.className = `btn btn-sm ${menuFilterCategory === 'All' ? 'btn-active' : ''}`;
+  allBtn.textContent = `All (${state.menu.length})`;
+  allBtn.addEventListener('click', () => { menuFilterCategory = 'All'; renderMenuTable(); renderMenuCategoryTabs(); });
+  menuCategoryTabs.appendChild(allBtn);
+  
+  // Only show categories that have items
+  const usedCats = {};
+  state.menu.forEach(m => {
+    usedCats[m.category] = (usedCats[m.category] || 0) + 1;
+  });
+  
+  Object.keys(usedCats).sort().forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = `btn btn-sm ${menuFilterCategory === cat ? 'btn-active' : ''}`;
+    btn.textContent = `${cat} (${usedCats[cat]})`;
+    btn.addEventListener('click', () => { menuFilterCategory = cat; renderMenuTable(); renderMenuCategoryTabs(); });
+    menuCategoryTabs.appendChild(btn);
+  });
+  
+  // Update stats
+  menuTotalItems.textContent = state.menu.length;
+  menuTotalCats.textContent = Object.keys(usedCats).length;
+}
+
+function renderMenuTable() {
+  menuItemsBody.innerHTML = '';
+  
+  const filtered = menuFilterCategory === 'All'
+    ? state.menu
+    : state.menu.filter(m => m.category === menuFilterCategory);
+  
+  if (filtered.length === 0) {
+    menuItemsBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:2rem; color:var(--text-muted);">No menu items. Add items using the form or import a CSV.</td></tr>`;
+    return;
+  }
+  
+  // Sort by category then name
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.category !== b.category) return a.category.localeCompare(b.category);
+    return a.name.localeCompare(b.name);
+  });
+  
+  sorted.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.style.borderBottom = '1px solid var(--border-color)';
+    tr.innerHTML = `
+      <td style="padding:0.6rem 0.8rem;"><span style="background:rgba(245,158,11,0.15); color:var(--accent-warning); padding:2px 8px; border-radius:4px; font-size:0.75rem; font-weight:600;">${item.category}</span></td>
+      <td style="padding:0.6rem 0.8rem; font-weight:600;">${item.name}</td>
+      <td style="padding:0.6rem 0.8rem; color:var(--accent-success); font-weight:700;">$${item.price.toFixed(2)}</td>
+      <td style="padding:0.6rem 0.8rem; color:var(--text-muted); font-size:0.85rem;">${item.description || '—'}</td>
+      <td style="padding:0.6rem 0.8rem;">
+        <div style="display:flex; gap:0.3rem;">
+          <button class="btn-icon-tiny edit" onclick="editMenuItem('${item.id}')" title="Edit"><span class="material-symbols-outlined" style="font-size:16px;">edit</span></button>
+          <button class="btn-icon-tiny delete" onclick="deleteMenuItem('${item.id}')" title="Delete"><span class="material-symbols-outlined" style="font-size:16px;">delete</span></button>
+        </div>
+      </td>
+    `;
+    menuItemsBody.appendChild(tr);
+  });
+}
+
+window.editMenuItem = function(id) {
+  const item = state.menu.find(m => m.id === id);
+  if (!item) return;
+  
+  menuEditId = id;
+  menuFormTitle.textContent = 'Edit Menu Item';
+  btnAddMenuItem.textContent = 'Save Changes';
+  btnCancelMenuEdit.style.display = 'block';
+  
+  menuItemCategory.value = item.category;
+  menuItemName.value = item.name;
+  menuItemPrice.value = item.price;
+  menuItemDesc.value = item.description || '';
+};
+
+window.deleteMenuItem = function(id) {
+  if (!confirm('Delete this menu item?')) return;
+  state.menu = state.menu.filter(m => m.id !== id);
+  renderMenuTable();
+  renderMenuCategoryTabs();
+  saveState();
+};
 
 // Boot
 init();

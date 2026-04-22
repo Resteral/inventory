@@ -1,7 +1,7 @@
 {
-  "name": "The City Inventory Manager",
-  "short_name": "The City",
-  "description": "Convenience store layout mapper and inventory manager.",
+  "name": "Layout & Inventory Manager",
+  "short_name": "Store Manager",
+  "description": "Store layout mapper, inventory manager, and restaurant point of sale.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#06090e",
