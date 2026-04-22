@@ -30,6 +30,12 @@
       </div>
       <p class="subtitle">Layout & Inventory Editor</p>
       
+      <!-- Preview Badge -->
+      <div id="preview-badge" class="preview-badge hidden">
+        <span class="material-symbols-outlined">visibility</span>
+        PREVIEW MODE
+      </div>
+      
       <div class="tools-section">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <h3>Fixtures</h3>
@@ -675,21 +681,44 @@
     </div>
 
     <!-- Supabase Auth Modal -->
-    <div id="auth-modal" class="modal-overlay" style="z-index: 10000; background: var(--bg-main);">
-      <div class="modal-content glass-panel" style="width: 400px; max-width: 90%; text-align: center;">
-        <span class="material-symbols-outlined logo-icon" style="font-size: 3rem; margin-bottom: 1rem; display:inline-block;">storefront</span>
-        <h2 style="margin-bottom: 0.5rem;">Welcome</h2>
-        <p class="subtitle" style="margin-bottom: 2rem;">Sign in to access your store layout and inventory.</p>
+    <div id="auth-modal" class="modal-overlay" style="z-index: 10000; background: radial-gradient(circle at center, #1e293b 0%, #06090e 100%);">
+      <div class="modal-content glass-panel" style="width: 450px; max-width: 90%; text-align: center; padding: 2.5rem;">
+        <span class="material-symbols-outlined logo-icon" style="font-size: 4rem; color: var(--accent-primary); filter: drop-shadow(0 0 15px var(--accent-primary-glow)); margin-bottom: 0.5rem; display:inline-block;">rocket_launch</span>
+        <h1 style="margin-bottom: 0.5rem; font-weight: 800; letter-spacing: -1px;">Premium Access</h1>
+        <p class="subtitle" style="margin-bottom: 2rem;">Unlock the full power of the Restaurant Management System.</p>
         
-        <div class="add-product-form" style="background: transparent; border: none; padding: 0;">
-          <input type="email" id="auth-email" placeholder="Email Address" required>
-          <input type="password" id="auth-password" placeholder="Password" required>
-          
-          <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-            <button id="btn-login" class="btn btn-primary">Log In</button>
-            <button id="btn-signup" class="btn btn-sm">Sign Up</button>
+        <!-- Pricing Cards -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-light); border-radius: 16px; padding: 1.5rem; margin-bottom: 2rem; text-align: left;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <span style="font-weight: 800; font-size: 1.2rem; color: var(--accent-primary);">Pro Subscription</span>
+            <span style="font-weight: 800; font-size: 1.4rem;">$9.99<small style="font-size: 0.8rem; font-weight: 400; color: var(--text-muted);">/mo</small></span>
           </div>
-          <p id="auth-error" class="instruction-text" style="color: var(--accent-danger); margin-top: 1rem; display: none;"></p>
+          <ul style="list-style: none; padding: 0; margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted); display: flex; flex-direction: column; gap: 0.5rem;">
+            <li style="display: flex; align-items:center; gap: 8px;"><span class="material-symbols-outlined" style="color: var(--accent-success); font-size: 1.1rem;">check_circle</span> Unlimited Store Blueprints</li>
+            <li style="display: flex; align-items:center; gap: 8px;"><span class="material-symbols-outlined" style="color: var(--accent-success); font-size: 1.1rem;">check_circle</span> Full Restaurant Menu System</li>
+            <li style="display: flex; align-items:center; gap: 8px;"><span class="material-symbols-outlined" style="color: var(--accent-success); font-size: 1.1rem;">check_circle</span> Advanced Analytics & CSV Import</li>
+            <li style="display: flex; align-items:center; gap: 8px;"><span class="material-symbols-outlined" style="color: var(--accent-success); font-size: 1.1rem;">check_circle</span> Cloud Sync & Multi-User Access</li>
+          </ul>
+          <button id="btn-subscribe" class="btn btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">Subscribe Now</button>
+        </div>
+
+        <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+          <div style="flex: 1; height: 1px; background: var(--border-light);"></div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Or Login / Preview</span>
+          <div style="flex: 1; height: 1px; background: var(--border-light);"></div>
+        </div>
+
+        <div class="add-product-form" style="background: transparent; border: none; padding: 0; display: flex; flex-direction: column; gap: 0.8rem;">
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="email" id="auth-email" placeholder="Email" style="margin-bottom: 0;">
+            <input type="password" id="auth-password" placeholder="Password" style="margin-bottom: 0;">
+          </div>
+          
+          <div style="display: flex; gap: 0.8rem;">
+            <button id="btn-login" class="btn btn-sm" style="flex: 1; padding: 0.8rem;">Member Login</button>
+            <button id="btn-preview" class="btn btn-sm" style="flex: 1; border-color: var(--accent-secondary); color: var(--accent-secondary); padding: 0.8rem;">Try Preview Mode</button>
+          </div>
+          <p id="auth-error" class="instruction-text" style="color: var(--accent-danger); margin-top: 0.5rem; display: none;"></p>
         </div>
       </div>
     </div>

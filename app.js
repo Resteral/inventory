@@ -20,7 +20,8 @@ const state = {
   fixtures: {}, // id: { type, row, col, products: [] }
   selectedFixtureId: null,
   logistics: [], // [{ id, type, vendor, date, items: [], status }]
-  salesData: {} // { [prodName]: { revenue: 0, qtySold: 0 } }
+  salesData: {}, // { [prodName]: { revenue: 0, qtySold: 0 } }
+  isPreview: false
 };
 
 // DOM Elements
@@ -70,6 +71,9 @@ const btnLogin = document.getElementById('btn-login');
 const btnSignup = document.getElementById('btn-signup');
 const authError = document.getElementById('auth-error');
 const authLogoutBtn = document.getElementById('auth-logout-btn');
+const btnSubscribe = document.getElementById('btn-subscribe');
+const btnPreview = document.getElementById('btn-preview');
+const previewBadge = document.getElementById('preview-badge');
 
 // POS Elements
 const posPanel = document.getElementById('pos-panel');
@@ -244,11 +248,9 @@ function loadState() {
 // ----- Supabase Auth -----
 async function handleAuth() {
   if (!dbClient) {
-    authError.textContent = "Database not configured. Running in local-only mode.";
+    authError.textContent = "Supabase Database not configured. You can test the system in Preview Mode below.";
     authError.style.display = 'block';
     authError.style.color = 'var(--accent-warning)';
-    // Allow using the app without auth
-    setTimeout(() => authModal.classList.add('hidden'), 1500);
     return;
   }
 
@@ -257,6 +259,8 @@ async function handleAuth() {
     const { data: { session }, error } = await dbClient.auth.getSession();
     if (session) {
       authModal.classList.add('hidden');
+      previewBadge.classList.add('hidden');
+      state.isPreview = false;
       authLogoutBtn.style.display = 'block';
     } else {
       authModal.classList.remove('hidden');
@@ -267,6 +271,8 @@ async function handleAuth() {
     dbClient.auth.onAuthStateChange((event, session) => {
       if (session) {
         authModal.classList.add('hidden');
+        previewBadge.classList.add('hidden');
+        state.isPreview = false;
         authLogoutBtn.style.display = 'block';
       } else {
         authModal.classList.remove('hidden');
@@ -275,7 +281,7 @@ async function handleAuth() {
     });
   } catch(e) {
     console.warn('Auth check failed:', e);
-    authModal.classList.add('hidden');
+    // Keep modal open so they can use Preview or Login fixed
   }
 }
 
@@ -283,6 +289,19 @@ function showAuthError(msg) {
   authError.textContent = msg;
   authError.style.display = 'block';
 }
+
+// Paywall & Preview
+btnSubscribe.addEventListener('click', () => {
+  // Replace with actual Tebex or Stripe checkout link
+  window.open('https://tebex.io', '_blank'); 
+});
+
+btnPreview.addEventListener('click', () => {
+  state.isPreview = true;
+  authModal.classList.add('hidden');
+  previewBadge.classList.remove('hidden');
+  console.log("Entering Preview Mode...");
+});
 
 btnLogin.addEventListener('click', async () => {
   if (!dbClient) return showAuthError("Supabase not configured in app.js.");
@@ -366,7 +385,6 @@ function init() {
     handleAuth();
   } catch(e) {
     console.warn('Auth initialization failed:', e);
-    authModal.classList.add('hidden');
   }
 }
 
