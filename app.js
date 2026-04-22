@@ -215,7 +215,8 @@ function saveState() {
     floorTheme: state.floorTheme || 'default',
     storeName: state.storeName || 'My Store',
     menu: state.menu || [],
-    menuCategories: state.menuCategories
+    menuCategories: state.menuCategories,
+    opsMode: state.opsMode
   }));
 }
 
@@ -235,6 +236,7 @@ function loadState() {
         if (parsed.storeName) state.storeName = parsed.storeName;
         if (parsed.menu) state.menu = parsed.menu;
         if (parsed.menuCategories) state.menuCategories = parsed.menuCategories;
+        if (parsed.opsMode) state.opsMode = parsed.opsMode;
       } else {
         state.fixtures = parsed;
         state.logistics = [];
@@ -314,6 +316,17 @@ function updateOpsMode() {
     }
   });
 
+  // Filter Action Buttons
+  const actionBtns = document.querySelectorAll('.action-buttons button[data-niche]');
+  actionBtns.forEach(btn => {
+    const niche = btn.dataset.niche;
+    if (niche === mode) {
+      btn.style.display = 'flex';
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+
   // Ensure an active tool is selected
   const currentVisible = Array.from(toolBtns).find(b => b.dataset.type === state.currentTool && b.style.display !== 'none');
   if (!currentVisible) {
@@ -327,6 +340,8 @@ function updateOpsMode() {
       toolBtns.forEach(b => b.classList.remove('active'));
       currentVisible.classList.add('active');
   }
+
+  saveState();
 }
 
 function closeSidebarOnMobile() {
