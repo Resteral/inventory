@@ -38,7 +38,7 @@ const statProducts = document.getElementById('stat-products');
 
 // Inventory Form Elements
 const invFixtureIcon = document.getElementById('inv-fixture-icon');
-const invFixtureName = document.getElementById('inv-fixture-name');
+const invFixtureTypeSelect = document.getElementById('inv-fixture-type-select');
 const invFixtureLoc = document.getElementById('inv-fixture-loc');
 const addProductBtn = document.getElementById('add-product-btn');
 const prodBarcodeInput = document.getElementById('prod-barcode');
@@ -643,6 +643,21 @@ function setupEventListeners() {
   });
   applyGridBtn.addEventListener('click', applyGridSettings);
 
+  // Fixture Type Change
+  if (invFixtureTypeSelect) {
+    invFixtureTypeSelect.addEventListener('change', () => {
+      const fixtureId = state.selectedFixtureId;
+      if (!fixtureId || !state.fixtures[fixtureId]) return;
+      
+      const newType = invFixtureTypeSelect.value;
+      state.fixtures[fixtureId].type = newType;
+      invFixtureIcon.textContent = getIcon(newType);
+      
+      renderFixtures();
+      saveState();
+    });
+  }
+
   // Ops Mode Switch
   if (opsModeSelect) {
     opsModeSelect.addEventListener('change', updateOpsMode);
@@ -799,8 +814,8 @@ function openInventory(fixtureId) {
   invPanel.classList.remove('hidden');
   
   invFixtureIcon.textContent = getIcon(fixture.type);
-  invFixtureName.textContent = getLabel(fixture.type);
-  invFixtureLoc.textContent = `Position: Row ${fixture.row + 1}, Col ${fixture.col + 1}`;
+  invFixtureTypeSelect.value = fixture.type;
+  invFixtureLoc.textContent = `Location: Row ${fixture.row + 1}, Col ${fixture.col + 1}`;
 
   // Reset Form
   prodBarcodeInput.value = '';

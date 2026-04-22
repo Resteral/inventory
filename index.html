@@ -179,10 +179,17 @@
       <button id="close-inventory" class="icon-btn"><span class="material-symbols-outlined">close</span></button>
       
       <div class="inv-header">
-        <span class="material-symbols-outlined inv-icon" id="inv-fixture-icon">shelves</span>
+        <span class="material-symbols-outlined inv-icon" id="inv-fixture-icon" style="color:var(--accent-primary);">shelves</span>
         <div>
-          <h2 id="inv-fixture-name">Aisle Shelf</h2>
-          <p class="subtitle" id="inv-fixture-loc">Position: Row 1, Col 1</p>
+          <select id="inv-fixture-type-select" style="background:transparent; border:none; color:var(--text-main); font-size:1.5rem; font-weight:800; font-family:inherit; cursor:pointer; padding:0; margin-bottom:5px; outline:none; appearance: none;">
+            <option value="shelf" style="background:var(--bg-panel-solid);">Aisle Shelf</option>
+            <option value="cooler" style="background:var(--bg-panel-solid);">Cooler</option>
+            <option value="register" style="background:var(--bg-panel-solid);">Register</option>
+            <option value="door" style="background:var(--bg-panel-solid);">Entrance</option>
+            <option value="table" style="background:var(--bg-panel-solid);">Dining Table</option>
+            <option value="kitchen" style="background:var(--bg-panel-solid);">Prep Area</option>
+          </select>
+          <p class="subtitle" id="inv-fixture-loc" style="margin:0;">Position: Row 1, Col 1</p>
         </div>
       </div>
 
