@@ -17,15 +17,9 @@
   --accent-warning: #f59e0b;
   
   /* Fixture Colors */
-  --color-shelf: #f59e0b;
-  --color-cooler: #3b82f6;
-  --color-register: #10b981;
-  --color-door: #64748b;
-  
-  /* Grid */
-  --grid-size: 45px;
   --grid-line: rgba(255, 255, 255, 0.03);
 
+  --sidebar-width: 330px;
   --transition-fast: 0.2s ease;
   --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -865,46 +859,110 @@ input:focus {
 }
 
 /* Mobile Responsiveness for Phones */
-@media screen and (max-width: 800px) {
+@media screen and (max-width: 900px) {
   .app-container {
     flex-direction: column;
   }
+  
+  .mobile-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.8rem 1.2rem;
+    background: var(--bg-panel-solid);
+    border-bottom: 1px solid var(--border-color);
+    z-index: 9000;
+  }
+
   .sidebar {
-    width: 100%;
-    min-width: 100%;
-    height: auto;
-    max-height: 45vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 290px;
+    height: 100vh;
+    z-index: 9500;
+    transform: translateX(-100%);
+    transition: transform var(--transition-smooth);
+    box-shadow: 20px 0 50px rgba(0,0,0,0.5);
+    background: var(--bg-panel-solid);
     padding: 1.5rem;
-    overflow-y: auto;
-    border-right: none;
-    border-bottom: 2px solid var(--border-color);
+    border-right: 1px solid var(--border-color);
   }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
   .canvas-wrapper {
-    padding: 1rem;
-    align-items: flex-start;
-    justify-content: flex-start;
+    touch-action: none; /* Crucial for mobile grid editing */
+    padding: 0.5rem;
+    height: calc(100vh - 120px) !important;
   }
+
   .inventory-panel, .pos-panel {
     width: 100%;
     right: 0;
-    max-height: 55vh;
+    max-height: 80vh;
     top: auto;
     bottom: 0;
     border-left: none;
     border-top: 2px solid var(--border-color);
     transform: translateY(100%);
+    z-index: 9200;
   }
+
   .inventory-panel:not(.hidden), .pos-panel:not(.hidden) {
     transform: translateY(0);
   }
+  
   .modal-content {
     width: 95% !important;
-    padding: 1.5rem;
-    height: 90vh !important;
+    padding: 1.2rem;
+    height: 92vh !important;
+    max-height: 92vh !important;
   }
-  .master-inv-controls {
+  
+  .tool-grid {
+    grid-template-columns: 1fr; /* Single column on narrow mobile */
+    gap: 0.5rem;
+  }
+  
+  .tool-btn {
+    padding: 0.8rem 1rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+  
+  .grid-header {
+    padding: 1rem;
     flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
   }
+  
+  .view-toggles {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .view-toggles button {
+    flex: 1;
+    font-size: 0.75rem;
+    padding: 0.6rem;
+  }
+}
+
+.mobile-header { display: none; }
+.mobile-close-sidebar { display: none; }
+
+@media screen and (max-width: 900px) {
+    .mobile-close-sidebar {
+        display: block;
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
 }
 
 /* ===== Payment Terminal Styles ===== */

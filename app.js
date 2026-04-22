@@ -129,6 +129,12 @@ const tableRunningTotal = document.getElementById('table-running-total');
 const btnSendKitchen = document.getElementById('btn-send-kitchen');
 const btnCheckoutTable = document.getElementById('btn-checkout-table');
 
+// Mobile UI Elements
+const sidePanel = document.getElementById('side-panel');
+const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+const mobileCloseSidebar = document.getElementById('mobile-close-sidebar');
+const mobileAnalyticsToggle = document.getElementById('mobile-analytics-toggle');
+
 const receiptModal = document.getElementById('receipt-modal');
 const receiptDate = document.getElementById('receipt-date');
 const receiptOrderId = document.getElementById('receipt-order-id');
@@ -283,6 +289,12 @@ function showAuthError(msg) {
   authError.style.display = 'block';
 }
 
+function closeSidebarOnMobile() {
+  if (window.innerWidth <= 900 && sidePanel) {
+    sidePanel.classList.remove('show');
+  }
+}
+
 btnLogin.addEventListener('click', async () => {
   if (!dbClient) return showAuthError("Supabase not configured in app.js.");
   const email = authEmail.value;
@@ -428,6 +440,11 @@ function setupEventListeners() {
       toolBtns.forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       state.currentTool = btn.dataset.type;
+      
+      // Auto-hide sidebar on mobile after choosing a tool
+      if (window.innerWidth <= 900) {
+        sidePanel.classList.remove('show');
+      }
     });
   });
 
@@ -523,6 +540,36 @@ function setupEventListeners() {
   // Floor Plan Settings
   floorSettingsToggle.addEventListener('click', () => {
     floorSettings.classList.toggle('hidden');
+    // Hide sidebar on mobile if opening floor settings
+    if (window.innerWidth <= 900) sidePanel.classList.remove('show');
+  });
+
+  // Mobile Specific Listeners
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', () => {
+      sidePanel.classList.add('show');
+    });
+  }
+  if (mobileCloseSidebar) {
+    mobileCloseSidebar.addEventListener('click', () => {
+      sidePanel.classList.remove('show');
+    });
+  }
+  if (mobileAnalyticsToggle) {
+    mobileAnalyticsToggle.addEventListener('click', () => {
+      analyticsModal.classList.remove('hidden');
+      renderAnalytics();
+    });
+  }
+
+  // Handle generic modal closures for mobile
+  document.querySelectorAll('.modal-overlay').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.add('hidden');
+        if (typeof stopScanner === 'function') stopScanner();
+      }
+    });
   });
   gridRowsSlider.addEventListener('input', () => {
     gridRowsVal.textContent = gridRowsSlider.value;
@@ -669,6 +716,7 @@ function renderFixtures() {
 
 // Inventory UI
 function openInventory(fixtureId) {
+  closeSidebarOnMobile();
   const fixture = state.fixtures[fixtureId];
   if (!fixture) return;
 
@@ -710,6 +758,7 @@ function closeInventory() {
 // ----- POS System -----
 
 function openPos(fixtureId) {
+  closeSidebarOnMobile();
   closeInventory(); // Ensure standard inventory panel is closed
   if (typeof closeTablePanel === 'function') closeTablePanel(); // Ensure table is closed
   const fixture = state.fixtures[fixtureId];
@@ -1169,6 +1218,7 @@ window.deleteProduct = deleteProduct;
 
 // ----- Master Inventory Logic -----
 function openMasterInventory() {
+  closeSidebarOnMobile();
   masterInvModal.classList.remove('hidden');
   masterSearch.value = '';
   masterFilter.value = 'all';
@@ -1311,8 +1361,10 @@ window.editMasterProduct = editMasterProduct;
 
 // ----- Logistics System -----
 function openLogistics() {
+  closeSidebarOnMobile();
   logisticsModal.classList.remove('hidden');
   renderLogistics();
+  if (window.innerWidth <= 900) sidePanel.classList.remove('show');
 }
 
 function closeLogistics() {
@@ -1460,6 +1512,7 @@ window.processShipment = processShipment;
 
 // ----- Analytics System -----
 function openAnalytics() {
+  closeSidebarOnMobile();
   analyticsModal.classList.remove('hidden');
   renderRevenueChart();
 }
@@ -1588,6 +1641,7 @@ function stopPosCameraScan() {
 
 // ----- Table Service System -----
 function openTablePanel(fixtureId) {
+  closeSidebarOnMobile();
   closeInventory();
   closePos();
   
@@ -2540,6 +2594,7 @@ let menuFilterCategory = 'All';
 
 // Open/close
 document.getElementById('menu-mgmt-btn').addEventListener('click', () => {
+  closeSidebarOnMobile();
   menuModal.classList.remove('hidden');
   menuEditId = null;
   clearMenuForm();

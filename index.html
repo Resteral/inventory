@@ -21,8 +21,22 @@
 <body>
   
   <div class="app-container">
+    <!-- Mobile Header -->
+    <div class="mobile-header">
+      <button id="mobile-menu-toggle" class="icon-btn" style="color:var(--accent-primary);">
+        <span class="material-symbols-outlined">menu</span>
+      </button>
+      <div style="font-weight:800; letter-spacing:1px; font-size:0.9rem;">RESTAURANT OPS</div>
+      <button id="mobile-analytics-toggle" class="icon-btn" style="color:var(--accent-secondary);">
+        <span class="material-symbols-outlined">analytics</span>
+      </button>
+    </div>
+
     <!-- Sidebar / Toolbar -->
-    <aside class="sidebar glass-panel">
+    <aside class="sidebar glass-panel" id="side-panel">
+      <button class="icon-btn mobile-close-sidebar" id="mobile-close-sidebar">
+        <span class="material-symbols-outlined">close</span>
+      </button>
       <div class="logo-container" style="cursor:pointer;" id="store-name-container" title="Click to rename your store">
         <span class="material-symbols-outlined logo-icon">storefront</span>
         <h1 id="store-name-display">My Store</h1>
