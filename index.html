@@ -44,6 +44,15 @@
       </div>
       <p class="subtitle">Layout & Inventory Editor</p>
       
+      <!-- Ops Mode Switcher -->
+      <div class="ops-switcher" style="margin-bottom: 2rem;">
+        <label style="font-size: 0.7rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 0.5rem;">Operation Mode</label>
+        <select id="ops-mode-select" class="btn btn-sm" style="width: 100%; appearance: none; background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.3); color: var(--text-main); text-align: center; font-weight: 800; cursor: pointer;">
+          <option value="restaurant">🍴 RESTAURANT OPS</option>
+          <option value="cstore">🏪 CONVENIENCE STORE</option>
+        </select>
+      </div>
+      
 
       
       <div class="tools-section">
@@ -54,11 +63,19 @@
         <p class="instruction-text">Select a fixture, then click the grid to place it.</p>
         
         <div class="tool-grid">
-          <div class="tool-btn active" data-type="shelf">
+          <div class="tool-btn active" data-type="table" data-niche="restaurant">
+            <span class="material-symbols-outlined">table_restaurant</span>
+            <span>Dining Table</span>
+          </div>
+          <div class="tool-btn" data-type="kitchen" data-niche="restaurant">
+            <span class="material-symbols-outlined">soup_kitchen</span>
+            <span>Prep Area</span>
+          </div>
+          <div class="tool-btn" data-type="shelf" data-niche="cstore">
             <span class="material-symbols-outlined">shelves</span>
             <span>Aisle Shelf</span>
           </div>
-          <div class="tool-btn" data-type="cooler">
+          <div class="tool-btn" data-type="cooler" data-niche="cstore">
             <span class="material-symbols-outlined">kitchen</span>
             <span>Cooler</span>
           </div>
@@ -69,14 +86,6 @@
           <div class="tool-btn" data-type="door">
             <span class="material-symbols-outlined">door_front</span>
             <span>Entrance</span>
-          </div>
-          <div class="tool-btn" data-type="table">
-            <span class="material-symbols-outlined">table_restaurant</span>
-            <span>Dining Table</span>
-          </div>
-          <div class="tool-btn" data-type="kitchen">
-            <span class="material-symbols-outlined">soup_kitchen</span>
-            <span>Prep Area</span>
           </div>
           <div class="tool-btn" data-type="eraser" id="eraser-btn">
             <span class="material-symbols-outlined">ink_eraser</span>

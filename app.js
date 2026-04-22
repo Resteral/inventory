@@ -20,7 +20,8 @@ const state = {
   fixtures: {}, // id: { type, row, col, products: [] }
   selectedFixtureId: null,
   logistics: [], // [{ id, type, vendor, date, items: [], status }]
-  salesData: {} // { [prodName]: { revenue: 0, qtySold: 0 } }
+  salesData: {}, // { [prodName]: { revenue: 0, qtySold: 0 } }
+  opsMode: 'restaurant'
 };
 
 // DOM Elements
@@ -134,6 +135,7 @@ const sidePanel = document.getElementById('side-panel');
 const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const mobileCloseSidebar = document.getElementById('mobile-close-sidebar');
 const mobileAnalyticsToggle = document.getElementById('mobile-analytics-toggle');
+const opsModeSelect = document.getElementById('ops-mode-select');
 
 const receiptModal = document.getElementById('receipt-modal');
 const receiptDate = document.getElementById('receipt-date');
@@ -289,6 +291,44 @@ function showAuthError(msg) {
   authError.style.display = 'block';
 }
 
+function updateOpsMode() {
+  const mode = opsModeSelect.value;
+  state.opsMode = mode;
+  
+  // Update mobile header text
+  const mobileHeaders = document.querySelectorAll('.mobile-header div');
+  mobileHeaders.forEach(el => {
+    if (el.textContent.includes('OPS') || el.textContent.includes('STORE')) {
+        el.textContent = mode === 'restaurant' ? '🍴 RESTAURANT OPS' : '🏪 C-STORE OPS';
+    }
+  });
+
+  // Filter tools
+  toolBtns.forEach(btn => {
+    const niche = btn.dataset.niche;
+    if (!niche || niche === mode) {
+      btn.style.display = 'flex';
+    } else {
+      btn.style.display = 'none';
+      btn.classList.remove('active');
+    }
+  });
+
+  // Ensure an active tool is selected
+  const currentVisible = Array.from(toolBtns).find(b => b.dataset.type === state.currentTool && b.style.display !== 'none');
+  if (!currentVisible) {
+    const firstVisible = Array.from(toolBtns).find(b => b.style.display !== 'none');
+    if (firstVisible) {
+      toolBtns.forEach(b => b.classList.remove('active'));
+      firstVisible.classList.add('active');
+      state.currentTool = firstVisible.dataset.type;
+    }
+  } else {
+      toolBtns.forEach(b => b.classList.remove('active'));
+      currentVisible.classList.add('active');
+  }
+}
+
 function closeSidebarOnMobile() {
   if (window.innerWidth <= 900 && sidePanel) {
     sidePanel.classList.remove('show');
@@ -365,6 +405,12 @@ function init() {
   document.documentElement.style.setProperty('--grid-size', state.gridCellSize + 'px');
   floorThemeSelect.value = state.floorTheme;
   applyFloorTheme(state.floorTheme);
+  
+  // Initialize Ops Mode
+  if (opsModeSelect) {
+    opsModeSelect.value = state.opsMode || 'restaurant';
+    updateOpsMode();
+  }
   
   // Build grid, attach listeners, render — all synchronous
   createGrid();
@@ -581,6 +627,11 @@ function setupEventListeners() {
     gridCellVal.textContent = gridCellSlider.value + 'px';
   });
   applyGridBtn.addEventListener('click', applyGridSettings);
+
+  // Ops Mode Switch
+  if (opsModeSelect) {
+    opsModeSelect.addEventListener('change', updateOpsMode);
+  }
 
   // Split Check
   closeSplitCheck.addEventListener('click', () => splitCheckModal.classList.add('hidden'));
