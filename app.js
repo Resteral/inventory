@@ -176,7 +176,8 @@ const icons = {
   register: 'point_of_sale',
   door: 'door_front',
   table: 'table_restaurant',
-  kitchen: 'soup_kitchen'
+  kitchen: 'soup_kitchen',
+  eraser: 'delete'
 };
 
 const labels = {
@@ -185,8 +186,12 @@ const labels = {
   register: 'Register',
   door: 'Entrance Door',
   table: 'Dining Table',
-  kitchen: 'Prep Kitchen'
+  kitchen: 'Prep Kitchen',
+  eraser: 'Eraser'
 };
+
+function getIcon(type) { return icons[type] || 'help'; }
+function getLabel(type) { return labels[type] || type || 'Unknown'; }
 
 // Persistence
 const DB_KEY = 'topfloor_cstore_layout';
@@ -649,7 +654,7 @@ function renderFixtures() {
       labelHtml = `<span class="fixture-label">T${tableNumbers[fixture.id]}</span>`;
     }
 
-    fDiv.innerHTML = `<span class="material-symbols-outlined">${icons[fixture.type]}</span>${labelHtml}`;
+    fDiv.innerHTML = `<span class="material-symbols-outlined">${getIcon(fixture.type)}</span>${labelHtml}`;
     
     // Fixture click listener
     fDiv.addEventListener('mousedown', (e) => handleFixtureClick(e, fixture.id));
@@ -676,8 +681,8 @@ function openInventory(fixtureId) {
 
   invPanel.classList.remove('hidden');
   
-  invFixtureIcon.textContent = icons[fixture.type];
-  invFixtureName.textContent = labels[fixture.type];
+  invFixtureIcon.textContent = getIcon(fixture.type);
+  invFixtureName.textContent = getLabel(fixture.type);
   invFixtureLoc.textContent = `Position: Row ${fixture.row + 1}, Col ${fixture.col + 1}`;
 
   // Reset Form
@@ -1190,7 +1195,7 @@ function renderMasterInventory() {
     if (search && !p.name.toLowerCase().includes(search) && (!p.barcode || !p.barcode.includes(search))) return;
     
     const fixture = state.fixtures[p.sourceFixtureId];
-    const locString = fixture ? `${labels[fixture.type]} (R${fixture.row+1}, C${fixture.col+1})` : 'Unknown';
+    const locString = fixture ? `${getLabel(fixture.type)} (R${fixture.row+1}, C${fixture.col+1})` : 'Unknown';
     const cost = p.cost || 0;
     const vendor = p.vendor || 'N/A';
     const margin = p.price > 0 ? (((p.price - cost) / p.price) * 100).toFixed(1) : '0.0';
