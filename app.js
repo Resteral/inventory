@@ -239,23 +239,17 @@ function loadState() {
 // ----- Supabase Auth -----
 async function handleAuth() {
   if (!dbClient) {
-    authError.textContent = "Supabase Database not configured. Please enter your SUPABASE_URL and SUPABASE_ANON_KEY at the top of app.js.";
+    authError.textContent = "Database not configured. Running in local-only mode.";
     authError.style.display = 'block';
+    authError.style.color = 'var(--accent-warning)';
+    // Allow using the app without auth
+    setTimeout(() => authModal.classList.add('hidden'), 1500);
     return;
   }
 
-  // Check active session on load
-  const { data: { session }, error } = await dbClient.auth.getSession();
-  if (session) {
-    authModal.classList.add('hidden');
-    authLogoutBtn.style.display = 'block';
-  } else {
-    authModal.classList.remove('hidden');
-    authLogoutBtn.style.display = 'none';
-  }
-
-  // Listen for changes
-  dbClient.auth.onAuthStateChange((event, session) => {
+  try {
+    // Check active session on load
+    const { data: { session }, error } = await dbClient.auth.getSession();
     if (session) {
       authModal.classList.add('hidden');
       authLogoutBtn.style.display = 'block';
@@ -263,7 +257,21 @@ async function handleAuth() {
       authModal.classList.remove('hidden');
       authLogoutBtn.style.display = 'none';
     }
-  });
+
+    // Listen for changes
+    dbClient.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        authModal.classList.add('hidden');
+        authLogoutBtn.style.display = 'block';
+      } else {
+        authModal.classList.remove('hidden');
+        authLogoutBtn.style.display = 'none';
+      }
+    });
+  } catch(e) {
+    console.warn('Auth check failed:', e);
+    authModal.classList.add('hidden');
+  }
 }
 
 function showAuthError(msg) {
@@ -316,7 +324,6 @@ function applyStoreName() {
 
 // Initialize App
 function init() {
-  handleAuth();
   loadState();
   
   // Apply store name
@@ -343,10 +350,19 @@ function init() {
   floorThemeSelect.value = state.floorTheme;
   applyFloorTheme(state.floorTheme);
   
+  // Build grid, attach listeners, render — all synchronous
   createGrid();
   setupEventListeners();
   renderFixtures();
   updateStats();
+  
+  // Auth is best-effort — errors must not break the app
+  try {
+    handleAuth();
+  } catch(e) {
+    console.warn('Auth initialization failed:', e);
+    authModal.classList.add('hidden');
+  }
 }
 
 // Generate the 2D Grid Cells
