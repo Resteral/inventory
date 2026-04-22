@@ -10,6 +10,7 @@ if (window.supabase && SUPABASE_URL.startsWith('http')) {
 const state = {
   mode: 'edit', // 'edit' or 'inventory'
   currentTool: 'shelf', // shelf, cooler, register, door, eraser
+  draggingFixtureId: null,
   gridRows: 15,
   gridCols: 25,
   gridCellSize: 45,
@@ -134,7 +135,13 @@ const btnCheckoutTable = document.getElementById('btn-checkout-table');
 const sidePanel = document.getElementById('side-panel');
 const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
 const mobileCloseSidebar = document.getElementById('mobile-close-sidebar');
-const mobileAnalyticsToggle = document.getElementById('mobile-analytics-toggle');
+const mobileMoreToggle = document.getElementById('mobile-more-toggle');
+const mobileMoreMenu = document.getElementById('mobile-more-menu');
+
+const mobileMenuLink = document.getElementById('mobile-menu-link');
+const mobileInventoryLink = document.getElementById('mobile-inventory-link');
+const mobileLogisticsLink = document.getElementById('mobile-logistics-link');
+const mobileAnalyticsLink = document.getElementById('mobile-analytics-link');
 const opsModeSelect = document.getElementById('ops-mode-select');
 
 const receiptModal = document.getElementById('receipt-modal');
@@ -459,10 +466,27 @@ function createGrid() {
       
       cell.addEventListener('mousedown', (e) => handleCellInteraction(e, r, c));
       cell.addEventListener('mouseenter', (e) => {
-        if (e.buttons === 1) handleCellInteraction(e, r, c); // Drag support for drawing
+        if (e.buttons === 1 && !state.draggingFixtureId) handleCellInteraction(e, r, c); 
       });
       
-      // Native Mobile Touch Binding
+      // Drag and Drop
+      cell.addEventListener('dragover', (e) => {
+        e.preventDefault(); // Required to allow drop
+        cell.classList.add('drag-over');
+      });
+      cell.addEventListener('dragleave', () => cell.classList.remove('drag-over'));
+      cell.addEventListener('drop', (e) => {
+        e.preventDefault();
+        cell.classList.remove('drag-over');
+        const fixtureId = e.dataTransfer.getData('text/plain');
+        if (fixtureId && state.fixtures[fixtureId]) {
+          state.fixtures[fixtureId].row = parseInt(cell.dataset.row);
+          state.fixtures[fixtureId].col = parseInt(cell.dataset.col);
+          renderFixtures();
+          saveState();
+        }
+      });
+
       cell.addEventListener('touchstart', (e) => {
         handleCellInteraction(e, r, c);
       }, {passive: true});
@@ -616,12 +640,34 @@ function setupEventListeners() {
       sidePanel.classList.remove('show');
     });
   }
-  if (mobileAnalyticsToggle) {
-    mobileAnalyticsToggle.addEventListener('click', () => {
-      analyticsModal.classList.remove('hidden');
-      renderAnalytics();
+  
+  if (mobileMoreToggle) {
+    mobileMoreToggle.addEventListener('click', (e) => {
+      e.stopPropagation();
+      mobileMoreMenu.classList.toggle('hidden');
+      
+      // Filter menu items by niche
+      const menuItems = mobileMoreMenu.querySelectorAll('button[data-niche]');
+      menuItems.forEach(item => {
+        if (item.dataset.niche === state.opsMode || !item.dataset.niche) {
+          item.style.display = 'flex';
+        } else {
+          item.style.display = 'none';
+        }
+      });
     });
   }
+
+  // Mobile Menu Links
+  if (mobileMenuLink) mobileMenuLink.addEventListener('click', () => { menuModal.classList.remove('hidden'); mobileMoreMenu.classList.add('hidden'); renderMenuTable(); });
+  if (mobileInventoryLink) mobileInventoryLink.addEventListener('click', () => { openMasterInventory(); mobileMoreMenu.classList.add('hidden'); });
+  if (mobileLogisticsLink) mobileLogisticsLink.addEventListener('click', () => { openLogistics(); mobileMoreMenu.classList.add('hidden'); });
+  if (mobileAnalyticsLink) mobileAnalyticsLink.addEventListener('click', () => { openAnalytics(); mobileMoreMenu.classList.add('hidden'); });
+
+  // Close menu when clicking outside
+  window.addEventListener('click', () => {
+    if (mobileMoreMenu) mobileMoreMenu.classList.add('hidden');
+  });
 
   // Handle generic modal closures for mobile
   document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -785,8 +831,21 @@ function renderFixtures() {
       labelHtml = `<span class="fixture-label">T${tableNumbers[fixture.id]}</span>`;
     }
 
-    fDiv.innerHTML = `<span class="material-symbols-outlined">${getIcon(fixture.type)}</span>${labelHtml}`;
+    const invDot = (fixture.products && fixture.products.length > 0) ? '<span class="inv-dot"></span>' : '';
+    fDiv.innerHTML = `<span class="material-symbols-outlined">${getIcon(fixture.type)}</span>${labelHtml}${invDot}`;
     
+    // Drag & Drop for Layout Changes
+    fDiv.draggable = state.mode === 'edit';
+    fDiv.addEventListener('dragstart', (e) => {
+      state.draggingFixtureId = fixture.id;
+      e.dataTransfer.setData('text/plain', fixture.id);
+      fDiv.style.opacity = '0.4';
+    });
+    fDiv.addEventListener('dragend', () => {
+      state.draggingFixtureId = null;
+      fDiv.style.opacity = '1';
+    });
+
     // Fixture click listener
     fDiv.addEventListener('mousedown', (e) => handleFixtureClick(e, fixture.id));
     fDiv.addEventListener('touchstart', (e) => handleFixtureClick(e, fixture.id), {passive: true});
@@ -1253,32 +1312,44 @@ function deleteProduct(productId) {
 function renderProducts() {
   productList.innerHTML = '';
   const fixture = state.fixtures[state.selectedFixtureId];
-  if (!fixture) return;
+  if (!fixture || !fixture.products) return;
 
   if (fixture.products.length === 0) {
-    productList.innerHTML = `<li class="instruction-text" style="text-align:center; padding: 2rem 0;">No items stocked here yet.</li>`;
+    productList.innerHTML = `<div class="empty-state" style="grid-column:1/-1; padding:3rem; text-align:center; opacity:0.5;">
+      <span class="material-symbols-outlined" style="font-size:3rem; margin-bottom:1rem;">inventory_2</span>
+      <p>No items on this ${fixture.type} yet.</p>
+    </div>`;
     return;
   }
 
-  fixture.products.forEach(p => {
-    const li = document.createElement('li');
-    li.className = 'product-item';
-    
-    const badgeHtml = p.barcode ? `<span class="prod-barcode-badge"><span class="material-symbols-outlined" style="font-size:10px;vertical-align:middle;">barcode</span> ${p.barcode}</span>` : '';
-
-    li.innerHTML = `
-      <div class="prod-info">
-        <h4>${p.name} ${badgeHtml}</h4>
-        <div class="prod-details">
-          Qty: ${p.qty} <span style="margin:0 5px">•</span> <span class="prod-price">$${p.price.toFixed(2)}</span>
-        </div>
-      </div>
-      <button class="icon-btn del-btn" style="position:static;" onclick="deleteProduct('${p.id}')">
-        <span class="material-symbols-outlined">delete</span>
-      </button>
+  fixture.products.forEach((p, index) => {
+    const div = document.createElement('div');
+    div.className = 'product-card glass-panel';
+    div.style.cssText = `
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding: 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      position: relative;
     `;
-    
-    productList.appendChild(li);
+
+    div.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <span class="material-symbols-outlined" style="color:var(--accent-primary); font-size:24px;">package_2</span>
+        <button class="btn-icon-tiny delete" onclick="deleteProduct(${index})" title="Remove Item">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div style="font-weight:700; font-size:1rem; margin-top:0.5rem; color:var(--text-main);">${p.name}</div>
+      <div style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; margin-bottom:0.5rem;">#${p.barcode || 'N/A'}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:0.5rem; border-top:1px solid var(--border-color);">
+        <div style="font-size:1rem; font-weight:800; color:var(--accent-success);">$${parseFloat(p.price).toFixed(2)}</div>
+        <div style="background:rgba(56,189,248,0.1); color:var(--accent-primary); padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:800;">QTY: ${p.qty}</div>
+      </div>
+    `;
+    productList.appendChild(div);
   });
 }
 

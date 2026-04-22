@@ -27,9 +27,25 @@
         <span class="material-symbols-outlined">menu</span>
       </button>
       <div style="font-weight:800; letter-spacing:1px; font-size:0.9rem;">RESTAURANT OPS</div>
-      <button id="mobile-analytics-toggle" class="icon-btn" style="color:var(--accent-secondary);">
-        <span class="material-symbols-outlined">analytics</span>
-      </button>
+      <div style="position:relative;">
+        <button id="mobile-more-toggle" class="icon-btn" style="color:var(--accent-secondary);">
+          <span class="material-symbols-outlined">more_vert</span>
+        </button>
+        <div id="mobile-more-menu" class="glass-panel hidden" style="position:absolute; right:0; top:50px; width:220px; padding:0.5rem; border: 1px solid var(--border-light); border-radius:12px; z-index:10000; box-shadow:0 10px 40px rgba(0,0,0,0.5); display: flex; flex-direction: column; gap: 0.25rem;">
+          <button id="mobile-menu-link" data-niche="restaurant" class="btn btn-sm" style="text-align:left; color:var(--text-main); font-weight:600; padding:0.8rem; display:flex; align-items:center; gap:0.5rem; border:none; background:transparent;">
+            <span class="material-symbols-outlined" style="font-size:18px;">restaurant_menu</span> Menu Manager
+          </button>
+          <button id="mobile-inventory-link" class="btn btn-sm" style="text-align:left; color:var(--text-main); font-weight:600; padding:0.8rem; display:flex; align-items:center; gap:0.5rem; border:none; background:transparent;">
+            <span class="material-symbols-outlined" style="font-size:18px;">inventory_2</span> All Products
+          </button>
+          <button id="mobile-logistics-link" class="btn btn-sm" style="text-align:left; color:var(--text-main); font-weight:600; padding:0.8rem; display:flex; align-items:center; gap:0.5rem; border:none; background:transparent;">
+            <span class="material-symbols-outlined" style="font-size:18px;">local_shipping</span> Logistics
+          </button>
+          <button id="mobile-analytics-link" class="btn btn-sm" style="text-align:left; color:var(--text-main); font-weight:600; padding:0.8rem; display:flex; align-items:center; gap:0.5rem; border:none; background:transparent;">
+            <span class="material-symbols-outlined" style="font-size:18px;">analytics</span> Revenue Analytics
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Sidebar / Toolbar -->

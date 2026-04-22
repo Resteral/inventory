@@ -142,6 +142,23 @@ h3 { font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spa
 #eraser-btn {
   grid-column: span 2;
 }
+
+.grid-cell.drag-over {
+  background: rgba(56, 189, 248, 0.1) !important;
+  border: 1px dashed var(--accent-primary) !important;
+  z-index: 2;
+}
+
+.product-card {
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  border-color: var(--accent-primary) !important;
+}
+
 #eraser-btn.active {
   background: rgba(255, 51, 102, 0.1);
   border-color: var(--accent-danger);
