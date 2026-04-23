@@ -28,6 +28,9 @@ self.addEventListener('activate', event => {
 
 // Fetch: network-first strategy — always try fresh, fall back to cache
 self.addEventListener('fetch', event => {
+  // Fix: Only handle http/https requests to avoid 'chrome-extension' scheme errors
+  if (!event.request.url.startsWith('http')) return;
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
