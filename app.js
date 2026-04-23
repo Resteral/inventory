@@ -1338,9 +1338,14 @@ function renderProducts() {
     div.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start;">
         <span class="material-symbols-outlined" style="color:var(--accent-primary); font-size:24px;">package_2</span>
-        <button class="btn-icon-tiny delete" onclick="deleteProduct(${index})" title="Remove Item">
-          <span class="material-symbols-outlined">close</span>
-        </button>
+        <div style="display:flex; gap:0.25rem;">
+          <button class="btn-icon-tiny tag" onclick="showDigitalTag('${p.barcode}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.qty})" title="Show Digital Tag">
+            <span class="material-symbols-outlined" style="font-size:16px;">label_important</span>
+          </button>
+          <button class="btn-icon-tiny delete" onclick="deleteProduct(${index})" title="Remove Item">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
       </div>
       <div style="font-weight:700; font-size:1rem; margin-top:0.5rem; color:var(--text-main);">${p.name}</div>
       <div style="font-size:0.75rem; color:var(--text-muted); font-family:monospace; margin-bottom:0.5rem;">#${p.barcode || 'N/A'}</div>
@@ -1422,6 +1427,9 @@ function renderMasterInventory() {
       <td style="color: ${margin > 0 ? 'var(--accent-success)' : (margin < 0 ? 'var(--accent-danger)' : 'var(--text-muted)')}">${margin}%</td>
       <td>$${val.toFixed(2)}</td>
       <td class="action-cell">
+        <button class="btn-icon-tiny tag" onclick="showDigitalTag('${p.barcode}', '${p.name.replace(/'/g, "\\'")}', ${p.price}, ${p.qty})" title="Digital Price Tag">
+          <span class="material-symbols-outlined" style="font-size:16px;">label_important</span>
+        </button>
         <button class="btn-icon-tiny edit" onclick="editMasterProduct('${p.sourceFixtureId}', '${p.id}')">
           <span class="material-symbols-outlined" style="font-size:16px;">edit</span>
         </button>
@@ -2989,4 +2997,59 @@ if ('serviceWorker' in navigator) {
       console.log('SW registration failed:', error);
     });
   });
+
+// ----- Digital Tag Logic -----
+const tagModal = document.getElementById('tag-modal');
+const tagPreviewContainer = document.getElementById('tag-preview-container');
+const closeTagModalBtn = document.getElementById('close-tag-modal');
+const printTagBtn = document.getElementById('print-tag-btn');
+
+function showDigitalTag(barcode, name, price, qty) {
+  const isLowStock = qty <= 5;
+  const isOutStack = qty <= 0;
+  
+  // Calculate a fake unit price for realism
+  const unitPrice = (price / 12).toFixed(2); // assuming 12oz for beverage feel
+
+  tagPreviewContainer.innerHTML = `
+    <div class="digital-tag ${isLowStock ? 'sale' : ''}" style="${isOutStack ? 'opacity: 0.8; filter: grayscale(1);' : ''}">
+      ${isLowStock && !isOutStack ? '<div class="sale-badge">SALE</div>' : ''}
+      <div class="tag-left">
+        <div class="product-category">DIGITAL LABEL</div>
+        <h2 class="product-name">${name}</h2>
+        <div class="unit-price">$${unitPrice} / UNIT</div>
+        <div class="price-block" style="${isOutStack ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
+          <span class="price-currency">$</span>
+          <span class="price-value">${parseFloat(price).toFixed(2)}</span>
+        </div>
+      </div>
+      <div class="tag-right">
+        <div class="stock-status" style="${isOutStack ? 'background:#e11d48;' : ''}">${isOutStack ? 'OUT OF STOCK' : (isLowStock ? 'LOW STOCK' : 'IN STOCK')}</div>
+        <div class="qr-code-sim"></div>
+        <div class="tag-barcode-container">
+          <div class="barcode-sim" style="${isLowStock ? 'background: repeating-linear-gradient(90deg, #e11d48, #e11d48 2px, #fff 2px, #fff 5px);' : ''}"></div>
+          <div class="barcode-text">${barcode !== 'null' ? barcode : 'NO BARCODE'}</div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  tagModal.classList.remove('hidden');
 }
+
+// Close tag modal
+if (closeTagModalBtn) {
+  closeTagModalBtn.addEventListener('click', () => {
+    tagModal.classList.add('hidden');
+  });
+}
+
+// Download/Print Tag (Mock)
+if (printTagBtn) {
+  printTagBtn.addEventListener('click', () => {
+    alert("In a production environment, this would generate a high-resolution PNG for the E-Ink display system.");
+  });
+}
+
+// Global reveal
+window.showDigitalTag = showDigitalTag;

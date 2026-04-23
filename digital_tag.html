@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Electronic Shelf Labels - Digital Price Tags</title>
+  <link rel="stylesheet" href="digital_tag.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="price-tag-container">
+    
+    <!-- Standard Tag -->
+    <div class="digital-tag">
+      <div class="tag-left">
+        <div class="product-category">Energy Drink</div>
+        <h2 class="product-name">Red Bull Sugarfree 12oz</h2>
+        <div class="unit-price">$0.25 / FL OZ</div>
+        <div class="price-block">
+          <span class="price-currency">$</span>
+          <span class="price-value">2.99</span>
+        </div>
+      </div>
+      <div class="tag-right">
+        <div class="stock-status">IN STOCK</div>
+        <div class="qr-code-sim"></div>
+        <div class="tag-barcode-container">
+          <div class="barcode-sim"></div>
+          <div class="barcode-text">9000123456789</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sale Tag -->
+    <div class="digital-tag sale">
+      <div class="sale-badge">SALE</div>
+      <div class="tag-left">
+        <div class="product-category">Snacks</div>
+        <h2 class="product-name">Doritos Nacho Cheese XL Bag</h2>
+        <div class="unit-price">$0.42 / OZ</div>
+        <div class="price-block">
+          <span class="price-currency">$</span>
+          <span class="price-value">4.49</span>
+        </div>
+      </div>
+      <div class="tag-right">
+        <div class="stock-status">LOW STOCK</div>
+        <div class="qr-code-sim"></div>
+        <div class="tag-barcode-container">
+          <div class="barcode-sim" style="background: repeating-linear-gradient(90deg, #e11d48, #e11d48 2px, #fff 2px, #fff 5px);"></div>
+          <div class="barcode-text">7000987654321</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Out of Stock Tag -->
+    <div class="digital-tag" style="opacity: 0.8; filter: grayscale(1);">
+      <div class="tag-left">
+        <div class="product-category">Beverage</div>
+        <h2 class="product-name">Coca-Cola Classic 20oz Bottle</h2>
+        <div class="unit-price">$0.10 / FL OZ</div>
+        <div class="price-block" style="text-decoration: line-through; opacity: 0.5;">
+          <span class="price-currency">$</span>
+          <span class="price-value">1.89</span>
+        </div>
+      </div>
+      <div class="tag-right">
+        <div class="stock-status" style="background: #e11d48;">OUT OF STOCK</div>
+        <div class="qr-code-sim"></div>
+        <div class="tag-barcode-container">
+          <div class="barcode-sim"></div>
+          <div class="barcode-text">5000112233445</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>
