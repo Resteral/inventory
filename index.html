@@ -736,9 +736,10 @@
           <input type="password" id="auth-password" placeholder="Password" required>
           
           <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-            <button id="btn-login" class="btn btn-primary">Log In</button>
-            <button id="btn-signup" class="btn btn-sm">Sign Up</button>
+            <button id="btn-login" class="btn btn-primary" style="flex:2;">Log In</button>
+            <button id="btn-signup" class="btn btn-sm" style="flex:1;">Sign Up</button>
           </div>
+          <button id="btn-guest" class="btn btn-sm" style="width: 100%; margin-top: 1rem; background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px dashed var(--border-light);">Continue as Guest (Local Only)</button>
           <p id="auth-error" class="instruction-text" style="color: var(--accent-danger); margin-top: 1rem; display: none;"></p>
         </div>
       </div>

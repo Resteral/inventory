@@ -389,9 +389,18 @@ btnSignup.addEventListener('click', async () => {
   }
 });
 
+
 authLogoutBtn.addEventListener('click', async () => {
   if (dbClient) await dbClient.auth.signOut();
 });
+
+const btnGuest = document.getElementById('btn-guest');
+if (btnGuest) {
+  btnGuest.addEventListener('click', () => {
+    authModal.classList.add('hidden');
+    console.log("Running in guest mode (local storage only).");
+  });
+}
 
 function applyStoreName() {
   const name = state.storeName || 'My Store';
