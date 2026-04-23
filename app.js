@@ -394,11 +394,16 @@ authLogoutBtn.addEventListener('click', async () => {
   if (dbClient) await dbClient.auth.signOut();
 });
 
+
 const btnGuest = document.getElementById('btn-guest');
 if (btnGuest) {
   btnGuest.addEventListener('click', () => {
+    // Force immediate hide without transition for guest mode
+    authModal.style.transition = 'none';
     authModal.classList.add('hidden');
     console.log("Running in guest mode (local storage only).");
+    // Restore transition for other modals later
+    setTimeout(() => { if(authModal) authModal.style.transition = ''; }, 100);
   });
 }
 

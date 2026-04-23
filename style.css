@@ -815,6 +815,7 @@ input:focus {
 .modal-overlay.hidden {
   opacity: 0;
   pointer-events: none;
+  display: none !important;
 }
 .modal-content {
   background: var(--bg-panel-solid);
